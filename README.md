@@ -1,95 +1,108 @@
-# HanSport v2
+# Han Sports - E-commerce Platform v2
 
-HanSport v2 là web bán đồ thể thao gồm backend Spring Boot REST API và frontend React/Vite. Project có flow demo cho `ADMIN` và `USER`: đăng nhập, xem sản phẩm, thêm giỏ hàng, đặt hàng, quản trị sản phẩm, tài khoản và đơn hàng.
+**Han Sports** là nền tảng thương mại điện tử chuyên nghiệp dành cho các sản phẩm thể thao. Project được xây dựng theo kiến trúc hiện đại với sự kết hợp mạnh mẽ giữa **Spring Boot (Backend)** và **React (Frontend)**, mang lại trải nghiệm mượt mà và an toàn cho người dùng.
 
-## Công nghệ
+---
 
-- Backend: Java 17, Spring Boot 3.2.2, Spring Web, Spring Security, JWT, Spring Data JPA, MySQL, Bean Validation.
-- Frontend: React 18, Vite, Fetch API, lucide-react.
-- Database local: MySQL, schema mặc định `hansport_v2`.
-- Test backend: H2 in-memory cho `mvn test`.
+## Tính Năng Nổi Bật
 
-## Cấu trúc thư mục
+### Dành cho Khách hàng (User)
 
-```text
-hansport_v2be/        Backend Spring Boot REST API
-hansport_v2fe/        Frontend React/Vite
-hansport_v2fe/upload/ Thu muc upload anh san pham demo
-DEMO_SCRIPT.md        Kich ban demo de bao ve do an
-```
+- **Hệ thống xác thực**: Đăng ký, đăng nhập và bảo mật tài khoản bằng JWT.
+- **Trải nghiệm mua sắm**: Xem danh mục sản phẩm, chi tiết sản phẩm với giao diện hiện đại.
+- **Giỏ hàng thông minh**: Thêm/xóa sản phẩm, cập nhật số lượng và tính tổng tiền thời gian thực.
+- **Thanh toán linh hoạt**: Hỗ trợ đặt hàng theo từng phần hoặc toàn bộ giỏ hàng.
+- **Theo dõi đơn hàng**: Xem lịch sử mua hàng và trạng thái vận chuyển của từng đơn hàng.
+- **Flash Sale**: Bộ đếm ngược thời gian ưu đãi đồng bộ theo phiên làm việc.
 
-## Cấu hình database
+### Dành cho Quản trị viên (Admin)
 
-Tạo database MySQL:
+- **Dashboard quản lý**: Theo dõi tổng quan hoạt động kinh doanh.
+- **Quản lý sản phẩm**: Thêm mới, chỉnh sửa và tải lên hình ảnh sản phẩm.
+- **Quản lý đơn hàng**: Tiếp nhận và cập nhật trạng thái đơn hàng (Chờ xử lý, Đang giao, Hoàn thành, Hủy).
+- **Cấu hình hệ thống**: Thay đổi Banner, Hotline và các thông tin chung của website trực tiếp từ giao diện Admin.
+
+---
+
+## 🛠 Công Nghệ Sử Dụng
+
+### Backend
+
+- **Java 17** & **Spring Boot 3.x**
+- **Spring Security** & **JWT (JSON Web Token)**
+- **Spring Data JPA** (Hibernate)
+- **MySQL Database**
+- **Maven** (Quản lý thư viện)
+
+### Frontend
+
+- **React.js 18** (Vite)
+- **Tailwind CSS** (Styling UI)
+- **Zustand** (State Management)
+- **React Router Dom** (Navigation)
+- **Lucide Icons** & **Material Symbols**
+
+---
+
+## Hướng Dẫn Cài Đặt
+
+### 1. Yêu cầu hệ thống
+
+- Java 17+
+- Node.js 18+
+- MySQL 8.x
+
+### 2. Cấu hình Database
+
+Tạo database MySQL mới:
 
 ```sql
 CREATE DATABASE hansport_v2 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-Backend đọc cấu hình từ biến môi trường, có default local:
+### 3. Khởi chạy Backend
 
-```properties
-DB_URL=jdbc:mysql://localhost:3306/hansport_v2?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-DB_USERNAME=root
-DB_PASSWORD=
-SERVER_PORT=8080
-FRONTEND_URL=http://localhost:5173
-UPLOAD_FILE_BASE_PATH=../hansport_v2fe/upload
-COOKIE_SECURE=false
-SEED_ENABLED=true
-```
-
-Nếu MySQL của bạn đang dùng mật khẩu `123456`, chạy backend với:
-
-```powershell
-$env:DB_PASSWORD="123456"
-```
-
-## Cách chạy backend
-
-Yêu cầu cài Java 17 và Maven, sau đó:
-
-```powershell
+```bash
 cd hansport_v2be
-mvn clean test
-mvn spring-boot:run
+mvn clean spring-boot:run
 ```
 
-Backend chạy tại `http://localhost:8080`. Khi `SEED_ENABLED=true`, app tự tạo role, tài khoản demo và sản phẩm mẫu.
+_Mặc định chạy tại: `http://localhost:8080`_
 
-## Cách chạy frontend
+### 4. Khởi chạy Frontend
 
-```powershell
+```bash
 cd hansport_v2fe
 npm install
 npm run dev
 ```
 
-Frontend chạy tại `http://localhost:5173`. Nếu backend không chạy ở port 8080, tạo file `.env.local`:
+_Mặc định chạy tại: `http://localhost:5173`_
 
-```properties
-VITE_API_BASE_URL=http://localhost:8080
-```
+---
 
-## Tài khoản demo
+## Tài Khoản Demo
 
-| Role | Email | Password |
-|---|---|---|
-| ADMIN | `admin@hansport.local` | `Admin@123` |
-| USER | `user@hansport.local` | `User@123` |
+| Vai trò           | Email                  | Mật khẩu    |
+| :---------------- | :--------------------- | :---------- |
+| **Quản trị viên** | `admin@hansport.local` | `Admin@123` |
 
-## Chức năng chính
+---
 
-- Đăng nhập, đăng ký user, đăng xuất, refresh token bằng cookie.
-- Phân quyền API theo `ADMIN` và `USER`.
-- User xem sản phẩm, thêm giỏ hàng, checkout, xem đơn hàng của mình.
-- Admin quản lý sản phẩm, upload ảnh sản phẩm, quản lý user, cập nhật trạng thái đơn hàng.
-- Seed dữ liệu demo để chạy nhanh khi trình bày.
+## Cấu Trúc Thư Mục
 
-## Lỗi thường gặp
+- `hansport_v2be/`: Mã nguồn máy chủ Spring Boot.
+- `hansport_v2fe/`: Mã nguồn giao diện React.
+- `hansport_v2fe/upload/`: Thư mục lưu trữ hình ảnh sản phẩm và banner.
 
-- `mvn` hoặc `java` không nhận lệnh: cài Java 17 và Maven, rồi thêm vào PATH.
-- Backend không kết nối DB: kiểm tra MySQL đang chạy, đúng `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
-- Frontend báo CORS/token: kiểm tra backend chạy port 8080 và `FRONTEND_URL=http://localhost:5173`.
-- Không thấy ảnh upload: kiểm tra `UPLOAD_FILE_BASE_PATH` đang trỏ tới `hansport_v2fe/upload`.
-- Refresh token không lưu khi chạy local HTTP: đảm bảo `COOKIE_SECURE=false`.
+---
+
+## 🛡 Bảo Mật và Lưu Ý
+
+- Ứng dụng sử dụng **Refresh Token** lưu trữ trong **HTTP-Only Cookie** để tối ưu bảo mật.
+- Khi triển khai thực tế (Production), hãy đổi `COOKIE_SECURE=true` trong cấu hình backend.
+- Hình ảnh được lưu trữ cục bộ tại server, hãy đảm bảo phân quyền ghi cho thư mục `upload`.
+
+---
+
+© 2026 **Han Sports Team**. All rights reserved.
