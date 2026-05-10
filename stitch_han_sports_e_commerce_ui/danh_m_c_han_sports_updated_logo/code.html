@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Vợt Cầu Lông - Han-Sports</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface-variant": "#414751",
+                        "inverse-primary": "#a6c8ff",
+                        "on-background": "#1e1b1c",
+                        "inverse-on-surface": "#f8efef",
+                        "on-tertiary-container": "#ffc7b4",
+                        "primary": "#004481",
+                        "outline-variant": "#c1c6d3",
+                        "on-primary-container": "#bbd4ff",
+                        "surface-container-high": "#efe6e7",
+                        "secondary-fixed-dim": "#6fdd87",
+                        "surface-container-highest": "#e9e0e1",
+                        "secondary": "#006d30",
+                        "on-tertiary-fixed-variant": "#822700",
+                        "on-secondary-container": "#007233",
+                        "secondary-fixed": "#8bfaa1",
+                        "error-container": "#ffdad6",
+                        "surface-variant": "#e9e0e1",
+                        "tertiary-fixed": "#ffdbcf",
+                        "primary-fixed": "#d5e3ff",
+                        "surface": "#fff8f8",
+                        "on-secondary-fixed": "#00210a",
+                        "on-primary-fixed": "#001c3b",
+                        "tertiary": "#7d2500",
+                        "on-secondary-fixed-variant": "#005323",
+                        "secondary-container": "#88f79e",
+                        "on-primary-fixed-variant": "#004787",
+                        "on-error-container": "#93000a",
+                        "primary-container": "#005baa",
+                        "error": "#ba1a1a",
+                        "outline": "#727783",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "surface-dim": "#e1d8d9",
+                        "surface-container-low": "#fbf1f2",
+                        "primary-fixed-dim": "#a6c8ff",
+                        "inverse-surface": "#342f30",
+                        "background": "#fff8f8",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed-dim": "#ffb59c",
+                        "surface-tint": "#0c5fae",
+                        "tertiary-container": "#a53400",
+                        "surface-container": "#f5eced",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed": "#390c00",
+                        "on-surface": "#1e1b1c",
+                        "surface-bright": "#fff8f8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "section-gap": "64px",
+                        "margin-mobile": "16px",
+                        "element-gap": "16px",
+                        "gutter": "24px",
+                        "container-max": "1440px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Inter"],
+                        "label-bold": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-xl": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["12px", { "lineHeight": "1.2", "fontWeight": "500" }],
+                        "label-bold": ["14px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "headline-xl": ["48px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background antialiased">
+<!-- TopNavBar -->
+<header class="sticky top-0 z-50 flex flex-col w-full shadow-sm">
+<!-- Tầng 1: Cam -->
+<div class="bg-[#E95211] text-white py-2 hidden md:block">
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-gutter flex justify-between items-center font-label-sm text-label-sm">
+<span>Hotline: 0987 654 321 | Hỗ trợ 24/7</span>
+<span>Miễn phí giao hàng toàn quốc cho đơn từ 1.000.000đ</span>
+</div>
+</div>
+<!-- Tầng 2: Trắng chứa Logo -->
+<div class="bg-white border-b border-outline-variant">
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-gutter py-4">
+<div class="flex items-center justify-between gap-6">
+<a class="shrink-0" href="#">
+<img alt="Han-Sports" class="h-10 md:h-12 object-contain" src="https://lh3.googleusercontent.com/aida/ADBb0uhb0sfbJg3wKtXkj7sjUStwe6Q2IMVWtYpXrWoI04L1yaduADqsZySZFyNByaEMITcvV5-cIN0QcMfGvePw-30aecI3JQjMSW1e36kyoOpmZ1OpyrFSLZIk4q2FwOLD9OiivulRT8nAfNoGkNT5grSaGsI8kFoXWcaaGUgxguCQUEGjHLjz2zhrOAG3XMS-NeRMKD7M_dDIqdKPgadq238HZkWL-uRLVdihVZEg2xijuyWFkU-oSG4exWfJNeQhwJEKkHmFWskOiA"/>
+</a>
+<div class="hidden md:flex flex-1 max-w-xl items-center bg-surface-container rounded-full px-4 py-2 border border-outline-variant focus-within:border-primary transition-colors">
+<span class="material-symbols-outlined text-outline">search</span>
+<input class="bg-transparent border-none outline-none font-body-md text-body-md w-full ml-2 focus:ring-0 text-on-surface" placeholder="Tìm kiếm sản phẩm..." type="text"/>
+</div>
+<div class="flex items-center gap-4 text-secondary shrink-0">
+<button class="hover:text-primary transition-colors duration-200">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="hover:text-primary transition-colors duration-200">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+<button class="hidden md:flex items-center gap-2 font-label-bold text-label-bold hover:text-primary transition-colors duration-200">
+<span class="material-symbols-outlined">person</span>
+                        Tài khoản
+                    </button>
+<button class="flex items-center gap-2 bg-primary text-on-primary px-4 py-2 rounded-full font-label-bold text-label-bold hover:bg-primary-container hover:text-on-primary-container transition-colors duration-200">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="hidden md:inline">Giỏ hàng</span>
+</button>
+<button class="md:hidden text-secondary">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Tầng 3: Đen chứa Menu -->
+<div class="bg-[#1e1b1c] hidden md:block">
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-gutter">
+<nav class="flex items-center gap-8 py-3">
+<a class="text-white border-b-2 border-primary pb-1 font-label-bold text-label-bold opacity-100 transition-all" href="#">Cầu lông</a>
+<a class="text-outline-variant hover:text-white transition-colors duration-200 font-label-bold text-label-bold" href="#">Tennis</a>
+<a class="text-outline-variant hover:text-white transition-colors duration-200 font-label-bold text-label-bold" href="#">Pickleball</a>
+<a class="text-outline-variant hover:text-white transition-colors duration-200 font-label-bold text-label-bold" href="#">Tin tức</a>
+<a class="text-outline-variant hover:text-white transition-colors duration-200 font-label-bold text-label-bold" href="#">Khuyến mãi</a>
+</nav>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="max-w-container-max mx-auto px-margin-mobile md:px-gutter py-section-gap">
+<!-- Breadcrumbs & Title -->
+<div class="mb-element-gap">
+<nav class="flex text-on-surface-variant font-label-sm text-label-sm mb-4">
+<a class="hover:text-primary" href="#">Trang chủ</a>
+<span class="mx-2">/</span>
+<span class="text-primary font-bold">Vợt Cầu Lông</span>
+</nav>
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-outline-variant pb-4">
+<div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface mb-2">Vợt Cầu Lông Cao Cấp</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Khám phá bộ sưu tập vợt cầu lông chuyên nghiệp từ các thương hiệu hàng đầu.</p>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Hiển thị 24 sản phẩm</span>
+<div class="relative">
+<select class="appearance-none bg-surface border border-outline-variant rounded-lg py-2 pl-4 pr-10 font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary">
+<option>Mới nhất</option>
+<option>Giá: Thấp đến Cao</option>
+<option>Giá: Cao đến Thấp</option>
+<option>Bán chạy nhất</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-outline">expand_more</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col lg:flex-row gap-gutter">
+<!-- Sidebar Filters -->
+<aside class="w-full lg:w-64 shrink-0">
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 sticky top-40">
+<h2 class="font-headline-md text-headline-md mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined">filter_list</span>
+                        Bộ Lọc
+                    </h2>
+<!-- Filter Section: Thương Hiệu -->
+<div class="mb-6 border-b border-surface-variant pb-6">
+<h3 class="font-label-bold text-label-bold text-on-surface mb-4">Thương Hiệu</h3>
+<div class="space-y-3">
+<label class="flex items-center gap-3 cursor-pointer">
+<input class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/>
+<span class="font-body-md text-body-md">Yonex (12)</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer">
+<input class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/>
+<span class="font-body-md text-body-md">Victor (8)</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer">
+<input class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/>
+<span class="font-body-md text-body-md">Lining (15)</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer">
+<input class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/>
+<span class="font-body-md text-body-md">Kumpoo (5)</span>
+</label>
+</div>
+</div>
+<!-- Filter Section: Mức Giá -->
+<div class="mb-6 border-b border-surface-variant pb-6">
+<h3 class="font-label-bold text-label-bold text-on-surface mb-4">Mức Giá</h3>
+<div class="space-y-3">
+<label class="flex items-center gap-3 cursor-pointer">
+<input class="w-5 h-5 border-outline-variant text-primary focus:ring-primary" name="price" type="radio"/>
+<span class="font-body-md text-body-md">Dưới 1.000.000đ</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer">
+<input class="w-5 h-5 border-outline-variant text-primary focus:ring-primary" name="price" type="radio"/>
+<span class="font-body-md text-body-md">1.000.000đ - 3.000.000đ</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer">
+<input class="w-5 h-5 border-outline-variant text-primary focus:ring-primary" name="price" type="radio"/>
+<span class="font-body-md text-body-md">Trên 3.000.000đ</span>
+</label>
+</div>
+</div>
+<!-- Filter Section: Độ Cứng -->
+<div class="mb-6">
+<h3 class="font-label-bold text-label-bold text-on-surface mb-4">Độ Cứng Thân Vợt</h3>
+<div class="flex flex-wrap gap-2">
+<button class="px-4 py-2 border border-outline-variant rounded-full font-label-sm text-label-sm hover:border-primary hover:text-primary transition-colors">Dẻo</button>
+<button class="px-4 py-2 border border-primary bg-primary-container text-on-primary-container rounded-full font-label-sm text-label-sm transition-colors">Trung Bình</button>
+<button class="px-4 py-2 border border-outline-variant rounded-full font-label-sm text-label-sm hover:border-primary hover:text-primary transition-colors">Cứng</button>
+</div>
+</div>
+<button class="w-full bg-surface-container-high text-on-surface py-3 rounded-lg font-label-bold text-label-bold hover:bg-surface-variant transition-colors mt-4">Xóa Bộ Lọc</button>
+</div>
+</aside>
+<!-- Product Grid -->
+<div class="flex-1">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Product Card 1 -->
+<div class="group bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col">
+<div class="relative aspect-[4/5] bg-surface-container overflow-hidden">
+<img alt="Vợt cầu lông Yonex Astrox 99 Pro đỏ rực" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A high-quality, professional photograph of a premium Yonex Astrox 99 Pro badminton racket. The racket features a striking, glossy red and black color scheme with intricate detailing on the frame. It is dynamically angled against a clean, bright, white studio backdrop, highlighting its sleek, modern design. The lighting is crisp and even, emphasizing the high-tech materials and professional athletic aesthetic suitable for a top-tier retail website." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAgSqPA26FL22uXa1-jJVCOknQDF21FZGj11mryYaWxB7v3Y-JagiBLSZbmk2zgTAkD-QSxCj6vKrBZYU0vtpSPmgqFvpiGuxkuHEjfhVNQ5wNtvSbr42j8aTapLHcFQBGiFF0IaDQq60HETK5yhTOfsJ4pYVAWt5azZ-p2agjwaDm_-xFzw-dF1ZGY8EileRJgP2cDe9i9gjDyHjXw9WKR_ARl9LbL64kBW7EZU3HI3XrMbRLl7xSLo-njTUo5KPvobz8EbPZVxl4"/>
+<div class="absolute top-3 left-3 bg-[#E8002D] text-on-primary px-3 py-1 rounded font-label-sm text-label-sm font-bold uppercase tracking-wider">-15%</div>
+<div class="absolute top-3 right-3 bg-surface text-on-surface px-2 py-1 rounded text-xs font-bold border border-outline-variant">Mới</div>
+<button class="absolute bottom-4 right-4 bg-surface rounded-full p-3 shadow-md text-on-surface-variant hover:text-[#E8002D] hover:scale-110 transition-all z-10">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+</div>
+<div class="p-5 flex flex-col flex-1">
+<p class="text-on-surface-variant font-label-sm text-label-sm mb-1 uppercase tracking-wider">Yonex</p>
+<h3 class="font-body-md text-body-md font-bold text-on-surface mb-2 line-clamp-2 group-hover:text-primary transition-colors">Vợt Cầu Lông Yonex Astrox 99 Pro Chính Hãng</h3>
+<div class="flex items-center gap-2 mb-4">
+<div class="flex text-[#FFB800] text-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star_half</span>
+</div>
+<span class="text-on-surface-variant text-xs">(24)</span>
+</div>
+<div class="mt-auto flex items-end justify-between">
+<div>
+<p class="text-[#E8002D] font-headline-md text-headline-md">3.850.000đ</p>
+<p class="text-on-surface-variant text-sm line-through">4.500.000đ</p>
+</div>
+<button class="bg-[#E95211] text-white p-3 rounded-lg hover:bg-orange-700 transition-colors shadow-md">
+<span class="material-symbols-outlined">shopping_cart</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="group bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col">
+<div class="relative aspect-[4/5] bg-surface-container overflow-hidden">
+<img alt="Vợt cầu lông Victor Thruster Ryuga" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A detailed studio shot of a professional Victor Thruster Ryuga badminton racket. The racket boasts a distinct white, orange, and black pattern on its frame and shaft. It is positioned diagonally across the frame against a pristine, light-gray background, ensuring maximum focus on the product. The lighting is bright and soft, creating a modern, high-contrast, professional athletic retail vibe that emphasizes speed and performance." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9BRE7CPYHNhFaVo9l5-LEySSFnTBWEHkP3JypdS7QRWQ5hbLa1k_Ps47xqnm-yq2ENqlp3N0NYpnPldS48nMlpzMprJE4bz9FfLodDjjI-SFfU2BD74qM6-dmvOFCV4Jg18Ujwu7dqYCzMJlRgbXDZ06twJ1lJOGyeGwlHhrB6dDKxxKFwZ56d8txmQMA2aLkizLI5bGjn-Fqb3wazHJ4rHKf5IC7w3QhYJPjzgop6DkzRGFTW54GgE3_5QsbRQR69ffpk_DhFfM"/>
+<button class="absolute bottom-4 right-4 bg-surface rounded-full p-3 shadow-md text-on-surface-variant hover:text-[#E8002D] hover:scale-110 transition-all z-10">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+</div>
+<div class="p-5 flex flex-col flex-1">
+<p class="text-on-surface-variant font-label-sm text-label-sm mb-1 uppercase tracking-wider">Victor</p>
+<h3 class="font-body-md text-body-md font-bold text-on-surface mb-2 line-clamp-2 group-hover:text-primary transition-colors">Vợt Cầu Lông Victor Thruster Ryuga Chính Hãng</h3>
+<div class="flex items-center gap-2 mb-4">
+<div class="flex text-[#FFB800] text-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<span class="text-on-surface-variant text-xs">(18)</span>
+</div>
+<div class="mt-auto flex items-end justify-between">
+<div>
+<p class="text-[#E8002D] font-headline-md text-headline-md">2.950.000đ</p>
+</div>
+<button class="bg-[#E95211] text-white p-3 rounded-lg hover:bg-orange-700 transition-colors shadow-md">
+<span class="material-symbols-outlined">shopping_cart</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="group bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col">
+<div class="relative aspect-[4/5] bg-surface-container overflow-hidden">
+<img alt="Vợt cầu lông Lining Aeronaut 9000C" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A close-up, high-resolution image of a Lining Aeronaut 9000C badminton racket. The racket features an elegant black and gold finish, exuding a premium, high-end feel. It is displayed vertically against a perfectly clean, white studio environment. The bright, high-key lighting casts minimal shadows, creating a sleek, energetic, and trustworthy aesthetic tailored for a high-performance sports equipment e-commerce store." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB77dL1RDBGG8MquosDkqPkilMcMC1zLH9v97EdjoSMIky9D_SUrpOM3X4QChEd5DPAnxnf5MxgKRf7zMI9buO6tvCXTk7ivU59p6npCvcY5GFSnbDVq7ASNb3baRcH4cAwaWuZG7eY1O_bAeAjmmG0uEAKRKQA_k51jh1Fs2ODS-sVBkX-_Up11Z2z0LkzExCRA3Gez04e5mcIMq-6ZQMC4MdnFV55PCbW5OZOuFxM-_rkybA4EfmIOcC3OLMP3LKuXceaaF2WenM"/>
+<div class="absolute top-3 left-3 bg-primary text-on-primary px-3 py-1 rounded font-label-sm text-label-sm font-bold uppercase tracking-wider">Best Seller</div>
+<button class="absolute bottom-4 right-4 bg-surface rounded-full p-3 shadow-md text-on-surface-variant hover:text-[#E8002D] hover:scale-110 transition-all z-10">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+</div>
+<div class="p-5 flex flex-col flex-1">
+<p class="text-on-surface-variant font-label-sm text-label-sm mb-1 uppercase tracking-wider">Lining</p>
+<h3 class="font-body-md text-body-md font-bold text-on-surface mb-2 line-clamp-2 group-hover:text-primary transition-colors">Vợt Cầu Lông Lining Aeronaut 9000C Chuyên Công</h3>
+<div class="flex items-center gap-2 mb-4">
+<div class="flex text-[#FFB800] text-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined">star</span>
+</div>
+<span class="text-on-surface-variant text-xs">(32)</span>
+</div>
+<div class="mt-auto flex items-end justify-between">
+<div>
+<p class="text-[#E8002D] font-headline-md text-headline-md">3.200.000đ</p>
+</div>
+<button class="bg-[#E95211] text-white p-3 rounded-lg hover:bg-orange-700 transition-colors shadow-md">
+<span class="material-symbols-outlined">shopping_cart</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Product Card 4 -->
+<div class="group bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col">
+<div class="relative aspect-[4/5] bg-surface-container overflow-hidden">
+<div class="w-full h-full bg-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-6xl text-outline-variant">sports_tennis</span>
+</div>
+<div class="absolute top-3 left-3 bg-[#E8002D] text-on-primary px-3 py-1 rounded font-label-sm text-label-sm font-bold uppercase tracking-wider">-10%</div>
+<button class="absolute bottom-4 right-4 bg-surface rounded-full p-3 shadow-md text-on-surface-variant hover:text-[#E8002D] hover:scale-110 transition-all z-10">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+</div>
+<div class="p-5 flex flex-col flex-1">
+<p class="text-on-surface-variant font-label-sm text-label-sm mb-1 uppercase tracking-wider">Kumpoo</p>
+<h3 class="font-body-md text-body-md font-bold text-on-surface mb-2 line-clamp-2 group-hover:text-primary transition-colors">Vợt Cầu Lông Kumpoo Power Control K520 Pro</h3>
+<div class="flex items-center gap-2 mb-4">
+<div class="flex text-[#FFB800] text-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star_half</span>
+</div>
+<span class="text-on-surface-variant text-xs">(128)</span>
+</div>
+<div class="mt-auto flex items-end justify-between">
+<div>
+<p class="text-[#E8002D] font-headline-md text-headline-md">650.000đ</p>
+<p class="text-on-surface-variant text-sm line-through">720.000đ</p>
+</div>
+<button class="bg-[#E95211] text-white p-3 rounded-lg hover:bg-orange-700 transition-colors shadow-md">
+<span class="material-symbols-outlined">shopping_cart</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Pagination -->
+<div class="flex justify-center mt-12 gap-2">
+<button class="w-10 h-10 rounded-lg border border-outline-variant flex items-center justify-center text-on-surface hover:border-primary hover:text-primary transition-colors">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="w-10 h-10 rounded-lg border border-primary bg-primary text-on-primary flex items-center justify-center font-label-bold text-label-bold">1</button>
+<button class="w-10 h-10 rounded-lg border border-outline-variant flex items-center justify-center text-on-surface hover:border-primary hover:text-primary transition-colors font-label-bold text-label-bold">2</button>
+<button class="w-10 h-10 rounded-lg border border-outline-variant flex items-center justify-center text-on-surface hover:border-primary hover:text-primary transition-colors font-label-bold text-label-bold">3</button>
+<span class="w-10 h-10 flex items-center justify-center text-on-surface-variant">...</span>
+<button class="w-10 h-10 rounded-lg border border-outline-variant flex items-center justify-center text-on-surface hover:border-primary hover:text-primary transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-inverse-surface border-t border-on-surface-variant">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-gutter py-section-gap max-w-container-max mx-auto px-margin-mobile md:px-gutter">
+<div class="col-span-2 md:col-span-1">
+<a class="mb-4 inline-block bg-white p-2 rounded" href="#">
+<img alt="Han-Sports" class="h-10 object-contain" src="https://lh3.googleusercontent.com/aida/ADBb0uhb0sfbJg3wKtXkj7sjUStwe6Q2IMVWtYpXrWoI04L1yaduADqsZySZFyNByaEMITcvV5-cIN0QcMfGvePw-30aecI3JQjMSW1e36kyoOpmZ1OpyrFSLZIk4q2FwOLD9OiivulRT8nAfNoGkNT5grSaGsI8kFoXWcaaGUgxguCQUEGjHLjz2zhrOAG3XMS-NeRMKD7M_dDIqdKPgadq238HZkWL-uRLVdihVZEg2xijuyWFkU-oSG4exWfJNeQhwJEKkHmFWskOiA"/>
+</a>
+<p class="text-on-surface-variant font-body-md text-body-md mb-4">© 2024 Han-Sports. Hệ thống cửa hàng cầu lông, tennis, pickleball chuyên nghiệp.</p>
+</div>
+<div>
+<h4 class="text-secondary-fixed font-bold font-headline-md text-headline-md mb-4">Hỗ Trợ</h4>
+<ul class="space-y-3">
+<li><a class="text-on-surface-variant hover:text-secondary-fixed-dim transition-colors font-label-sm text-label-sm" href="#">Về chúng tôi</a></li>
+<li><a class="text-on-surface-variant hover:text-secondary-fixed-dim transition-colors font-label-sm text-label-sm" href="#">Liên hệ</a></li>
+<li><a class="text-on-surface-variant hover:text-secondary-fixed-dim transition-colors font-label-sm text-label-sm" href="#">Hệ thống cửa hàng</a></li>
+</ul>
+</div>
+<div>
+<h4 class="text-secondary-fixed font-bold font-headline-md text-headline-md mb-4">Chính Sách</h4>
+<ul class="space-y-3">
+<li><a class="text-on-surface-variant hover:text-secondary-fixed-dim transition-colors font-label-sm text-label-sm" href="#">Chính sách bảo hành</a></li>
+<li><a class="text-on-surface-variant hover:text-secondary-fixed-dim transition-colors font-label-sm text-label-sm" href="#">Chính sách đổi trả</a></li>
+<li><a class="text-on-surface-variant hover:text-secondary-fixed-dim transition-colors font-label-sm text-label-sm" href="#">Hướng dẫn mua hàng</a></li>
+</ul>
+</div>
+<div>
+<h4 class="text-secondary-fixed font-bold font-headline-md text-headline-md mb-4">Kết Nối</h4>
+<div class="flex gap-4">
+<a class="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center text-on-surface hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">share</span>
+</a>
+</div>
+</div>
+</div>
+</footer>
+</body></html>

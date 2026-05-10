@@ -16,7 +16,7 @@ import java.util.Set;
 @Service
 public class FileService {
 
-    private static final Set<String> ALLOWED_FOLDERS = Set.of("product");
+    private static final Set<String> ALLOWED_FOLDERS = Set.of("product", "logo");
 
     @Value("${hansport.upload-file.base-path}")
     private String basePath;

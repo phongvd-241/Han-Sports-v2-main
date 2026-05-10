@@ -1,0 +1,14 @@
+{
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Spring Boot-HansportApplication<hansport_v2>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "com.javaweb.HansportApplication",
+      "projectName": "hansport_v2",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ]
+}
