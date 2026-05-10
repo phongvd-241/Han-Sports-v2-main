@@ -28,6 +28,7 @@ public class ResUpdateProductDTO {
     private long sold;
     private String brand;
     private String target;
+    private String category;
     private String image;
 
     private Instant updatedAt;

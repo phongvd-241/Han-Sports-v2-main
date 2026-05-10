@@ -31,5 +31,6 @@ public class ReqProductDTO {
     private long sold;
     private String brand;
     private String target;
+    private String category;
     private String image;
 }

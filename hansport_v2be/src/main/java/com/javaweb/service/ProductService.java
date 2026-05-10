@@ -96,6 +96,7 @@ public class ProductService {
         product.setDetailDesc(req.getDetailDesc());
         product.setBrand(req.getBrand());
         product.setTarget(req.getTarget());
+        product.setCategory(req.getCategory());
         product.setQuantity(req.getQuantity());
         product.setSold(req.getSold());
         product.setImage(req.getImage());
@@ -111,6 +112,7 @@ public class ProductService {
         resCreateProductDTO.setQuantity(product.getQuantity());
         resCreateProductDTO.setSold(product.getSold());
         resCreateProductDTO.setTarget(product.getTarget());
+        resCreateProductDTO.setCategory(product.getCategory());
         resCreateProductDTO.setBrand(product.getBrand());
         resCreateProductDTO.setImage(product.getImage());
         resCreateProductDTO.setCreatedAt(product.getCreatedAt());
@@ -127,6 +129,7 @@ public class ProductService {
         resUpdateProductDTO.setQuantity(product.getQuantity());
         resUpdateProductDTO.setSold(product.getSold());
         resUpdateProductDTO.setTarget(product.getTarget());
+        resUpdateProductDTO.setCategory(product.getCategory());
         resUpdateProductDTO.setBrand(product.getBrand());
         resUpdateProductDTO.setImage(product.getImage());
         resUpdateProductDTO.setUpdatedAt(product.getUpdatedAt());
@@ -143,6 +146,7 @@ public class ProductService {
         resProductDTO.setQuantity(product.getQuantity());
         resProductDTO.setSold(product.getSold());
         resProductDTO.setTarget(product.getTarget());
+        resProductDTO.setCategory(product.getCategory());
         resProductDTO.setBrand(product.getBrand());
         resProductDTO.setImage(product.getImage());
         resProductDTO.setCreatedAt(product.getCreatedAt());

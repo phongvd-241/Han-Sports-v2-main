@@ -157,6 +157,7 @@ public class CartService {
         ResCartDetailDTO.ProductCartDetail productCartDetail = new ResCartDetailDTO.ProductCartDetail();
         productCartDetail.setId(cd.getProduct().getId());
         productCartDetail.setName(cd.getProduct().getName());
+        productCartDetail.setPrice(cd.getProduct().getPrice());
         productCartDetail.setImage(cd.getProduct().getImage());
 
         resCartDetailDTO.setProduct(productCartDetail);

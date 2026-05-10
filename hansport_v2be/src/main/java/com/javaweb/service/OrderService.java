@@ -24,13 +24,17 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final CartRepository cartRepository;
+    private final CartDetailRepository cartDetailRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final ProductRepository productRepository;
 
-    public OrderService(OrderRepository orderRepository, UserRepository userRepository, CartRepository cartRepository, OrderDetailRepository orderDetailRepository, ProductRepository productRepository) {
+    public OrderService(OrderRepository orderRepository, UserRepository userRepository, CartRepository cartRepository, 
+                        CartDetailRepository cartDetailRepository, OrderDetailRepository orderDetailRepository, 
+                        ProductRepository productRepository) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.cartRepository = cartRepository;
+        this.cartDetailRepository = cartDetailRepository;
         this.orderDetailRepository = orderDetailRepository;
         this.productRepository = productRepository;
     }
@@ -43,13 +47,22 @@ public class OrderService {
         Cart cart = this.cartRepository.findByUser(currentUser)
                 .orElseThrow(() -> new IdInvalidException("Giỏ hàng đang trống"));
 
-        List<CartDetail> cartDetails = cart.getCartDetails();
-        if (cartDetails == null || cartDetails.isEmpty()) {
+        List<CartDetail> allCartDetails = cart.getCartDetails();
+        if (allCartDetails == null || allCartDetails.isEmpty()) {
             throw new IdInvalidException("Giỏ hàng đang trống");
         }
 
+        // Lọc ra các sản phẩm được chọn để thanh toán
+        List<CartDetail> orderItems = allCartDetails.stream()
+                .filter(cd -> reqOrder.getCartDetailIds().contains(cd.getId()))
+                .collect(Collectors.toList());
+
+        if (orderItems.isEmpty()) {
+            throw new IdInvalidException("Không có sản phẩm nào được chọn để thanh toán");
+        }
+
         double sum = 0;
-        for (CartDetail cd : cartDetails) {
+        for (CartDetail cd : orderItems) {
             Product product = cd.getProduct();
             if (product.getQuantity() < cd.getQuantity()) {
                 throw new IdInvalidException("Sản phẩm " + product.getName() + " không đủ tồn kho");
@@ -67,7 +80,7 @@ public class OrderService {
         order = this.orderRepository.save(order);
 
         List<OrderDetail> savedOrderDetails = new ArrayList<>();
-        for (CartDetail cartDetail : new ArrayList<>(cartDetails)) {
+        for (CartDetail cartDetail : orderItems) {
             Product product = cartDetail.getProduct();
             product.setQuantity(product.getQuantity() - cartDetail.getQuantity());
             product.setSold(product.getSold() + cartDetail.getQuantity());
@@ -79,10 +92,19 @@ public class OrderService {
             orderDetail.setPrice(cartDetail.getPrice());
             orderDetail.setQuantity(cartDetail.getQuantity());
             savedOrderDetails.add(this.orderDetailRepository.save(orderDetail));
+            
+            // Xóa khỏi danh sách để orphanRemoval tự động xóa trong DB
+            allCartDetails.remove(cartDetail);
         }
         order.setOrderDetails(savedOrderDetails);
 
-        this.cartRepository.deleteById(cart.getId());
+        // Cập nhật lại số lượng loại sản phẩm trong giỏ hàng (sum)
+        if (!allCartDetails.isEmpty()) {
+            cart.setSum(allCartDetails.size());
+            this.cartRepository.save(cart);
+        } else {
+            this.cartRepository.deleteById(cart.getId());
+        }
         return this.convertToResOrderDTO(order);
     }
 
