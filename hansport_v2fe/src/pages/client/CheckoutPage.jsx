@@ -4,7 +4,7 @@ import { orderApi } from "../../api/orderApi";
 import { useCartStore } from "../../store/useCartStore";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useSettingStore } from "../../store/useSettingStore";
-import { getImageUrl, formatVND } from "../../utils/constants";
+import { getImageUrl, formatVND, getFirstImage } from "../../utils/constants";
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -142,7 +142,7 @@ export default function CheckoutPage() {
                   <label className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${form.paymentMethod === 'VNPAY' ? 'border-brand-blue bg-brand-blue-light' : 'border-surface-border bg-white hover:border-brand-blue/50'}`}>
                     <input type="radio" name="paymentMethod" value="VNPAY" checked={form.paymentMethod === "VNPAY"} onChange={handleChange} className="accent-brand-blue" />
                     <div className="w-8 h-8 rounded bg-white flex items-center justify-center p-0.5 border border-surface-border">
-                       <span className="font-extrabold text-[#005BAA] text-[10px] tracking-tighter">VNPAY</span>
+                      <span className="font-extrabold text-[#005BAA] text-[10px] tracking-tighter">VNPAY</span>
                     </div>
                     <div>
                       <p className="font-semibold text-text-primary">Thanh toán qua VNPay</p>
@@ -163,7 +163,7 @@ export default function CheckoutPage() {
                     return (
                       <div key={item.id} className="flex gap-3 items-center">
                         <div className="w-14 h-14 rounded-lg bg-surface-muted flex-shrink-0 overflow-hidden">
-                          {p.image && <img src={getImageUrl(p.image)} alt={p.name} className="w-full h-full object-contain p-1.5" />}
+                          {getFirstImage(p) && <img src={getImageUrl(getFirstImage(p))} alt={p.name} className="w-full h-full object-contain p-1.5" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-text-primary line-clamp-2">{p.name}</p>

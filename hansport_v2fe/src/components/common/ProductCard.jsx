@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { getImageUrl, formatVND } from "../../utils/constants";
+import { getImageUrl, formatVND, getFirstImage } from "../../utils/constants";
 
 export default function ProductCard({ product, discountPercent, badge, onAddCart }) {
   const { id, name, price, image, brand, sold, quantity } = product;
@@ -25,9 +25,9 @@ export default function ProductCard({ product, discountPercent, badge, onAddCart
 
       {/* Image */}
       <Link to={`/products/${id}`} className="block relative overflow-hidden bg-surface-soft" style={{ paddingTop: "100%" }}>
-        {image ? (
+        {getFirstImage(product) ? (
           <img
-            src={getImageUrl(image)}
+            src={getImageUrl(getFirstImage(product))}
             alt={name}
             className="absolute inset-0 w-full h-full object-contain p-3 transition-transform duration-500 group-hover:scale-110"
           />
@@ -70,11 +70,10 @@ export default function ProductCard({ product, discountPercent, badge, onAddCart
               if (!isOutOfStock && onAddCart) onAddCart(product);
             }}
             disabled={isOutOfStock}
-            className={`w-full py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 ${
-              isOutOfStock
+            className={`w-full py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 ${isOutOfStock
                 ? "bg-surface-muted text-text-muted cursor-not-allowed"
                 : "btn-primary py-2 text-sm active:scale-95"
-            }`}
+              }`}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
               {isOutOfStock ? "remove_shopping_cart" : "add_shopping_cart"}

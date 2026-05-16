@@ -8,6 +8,7 @@ import lombok.Setter;
 
 
 import java.time.Instant;
+import java.util.List;
 
 @Getter
 @Setter
@@ -26,7 +27,7 @@ public class ResCreateProductDTO {
     private String brand;
     private String target;
     private String category;
-    private String image;
+    private List<String> images;
 
     private Instant createdAt;
 }

@@ -6,12 +6,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class ResUploadFileDTO {
-    private String fileName;
+    private List<String> fileName;
     private Instant upLoadedAt;
 }

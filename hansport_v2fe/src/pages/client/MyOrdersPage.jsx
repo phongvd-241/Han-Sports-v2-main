@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { orderApi } from "../../api/orderApi";
 import { useAuthStore } from "../../store/useAuthStore";
-import { getImageUrl, formatVND, formatDate, ORDER_STATUS } from "../../utils/constants";
+import { getImageUrl, formatVND, formatDate, ORDER_STATUS, getFirstImage } from "../../utils/constants";
 
 export default function MyOrdersPage() {
   const { user } = useAuthStore();
@@ -54,8 +54,8 @@ export default function MyOrdersPage() {
     { key: "CANCELLED", label: "Đã hủy" },
   ];
 
-  const filteredOrders = activeFilter === "ALL" 
-    ? orders 
+  const filteredOrders = activeFilter === "ALL"
+    ? orders
     : orders.filter(o => o.status === activeFilter);
 
   return (
@@ -78,11 +78,10 @@ export default function MyOrdersPage() {
             <button
               key={f.key}
               onClick={() => setActiveFilter(f.key)}
-              className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap border-2 ${
-                activeFilter === f.key 
-                  ? "bg-brand-blue border-brand-blue text-white shadow-lg shadow-brand-blue/20" 
+              className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap border-2 ${activeFilter === f.key
+                  ? "bg-brand-blue border-brand-blue text-white shadow-lg shadow-brand-blue/20"
                   : "bg-white border-surface-border text-text-muted hover:border-brand-blue/50"
-              }`}
+                }`}
             >
               {f.label}
             </button>
@@ -154,7 +153,7 @@ export default function MyOrdersPage() {
                             return (
                               <div key={idx} className="flex gap-4 items-center p-3 bg-white rounded-2xl border border-surface-border hover:border-brand-blue/20 transition-all group/item">
                                 <div className="w-16 h-16 rounded-xl bg-surface-muted flex-shrink-0 overflow-hidden">
-                                  {p.image && <img src={getImageUrl(p.image)} alt={p.name} className="w-full h-full object-contain p-2 group-hover/item:scale-110 transition-transform" />}
+                                  {getFirstImage(p) && <img src={getImageUrl(getFirstImage(p))} alt={p.name} className="w-full h-full object-contain p-2 group-hover/item:scale-110 transition-transform" />}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-bold text-text-primary line-clamp-1 group-hover/item:text-brand-blue transition-colors">
@@ -200,7 +199,7 @@ export default function MyOrdersPage() {
                           {/* Action Buttons */}
                           <div className="flex flex-col gap-2">
                             {order.status === "PENDING" && (
-                              <button 
+                              <button
                                 onClick={(e) => { e.stopPropagation(); handleCancelOrder(order.id); }}
                                 className="w-full py-3 bg-red-50 text-red-600 rounded-xl text-xs font-black hover:bg-red-100 transition-all flex items-center justify-center gap-2"
                               >

@@ -25,6 +25,18 @@ export const productApi = {
     });
   },
 
+  uploadFiles: (files) => {
+    const formData = new FormData();
+
+    files.forEach((f) => formData.append("files", f));
+
+    formData.append("folder", "product");
+
+    return axiosInstance.post("/api/v1/files", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
   getFile: (fileName) =>
     axiosInstance.get("/api/v1/files", { params: { fileName } }),
 };

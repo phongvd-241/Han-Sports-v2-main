@@ -7,6 +7,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 public class ReqProductDTO {
@@ -32,5 +34,5 @@ public class ReqProductDTO {
     private String brand;
     private String target;
     private String category;
-    private String image;
+    private List<String> images;
 }

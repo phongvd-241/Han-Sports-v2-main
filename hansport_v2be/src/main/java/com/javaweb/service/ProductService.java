@@ -1,11 +1,13 @@
 package com.javaweb.service;
 
 import com.javaweb.domain.Product;
+import com.javaweb.domain.ProductImage;
 import com.javaweb.domain.request.ReqProductDTO;
 import com.javaweb.domain.response.ResultPaginationDTO;
 import com.javaweb.domain.response.product.ResCreateProductDTO;
 import com.javaweb.domain.response.product.ResProductDTO;
 import com.javaweb.domain.response.product.ResUpdateProductDTO;
+import com.javaweb.repository.ProductImageRepository;
 import com.javaweb.repository.ProductRepository;
 import com.javaweb.util.error.IdInvalidException;
 import org.springframework.data.domain.Page;
@@ -14,6 +16,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -21,8 +24,10 @@ import java.util.stream.Collectors;
 @Service
 public class ProductService {
     private final ProductRepository productRepository;
-    public ProductService(ProductRepository productRepository) {
+    private final ProductImageRepository productImageRepository;
+    public ProductService(ProductRepository productRepository, ProductImageRepository productImageRepository) {
         this.productRepository = productRepository;
+        this.productImageRepository = productImageRepository;
     }
 
     @Transactional
@@ -33,6 +38,7 @@ public class ProductService {
         Product product = new Product();
         this.applyProductRequest(product, req);
         Product currentProduct = this.productRepository.save(product);
+        currentProduct.setImages(this.addImage(req.getImages(), currentProduct));
         return this.convertToResCreateProductDTO(currentProduct);
     }
 
@@ -48,6 +54,7 @@ public class ProductService {
 
         this.applyProductRequest(currentProduct, product);
         this.productRepository.save(currentProduct);
+        this.addImage(product.getImages(), currentProduct);
         return convertToResUpdateProductDTO(currentProduct);
     }
     public ResProductDTO fetchProductById(long id) throws IdInvalidException {
@@ -58,6 +65,12 @@ public class ProductService {
 
     @Transactional
     public void deleteProductById(long id) {
+        Product currentProduct = this.productRepository.findById(id).isPresent()?
+                this.productRepository.findById(id).get() : null;
+        List<ProductImage> productImages = currentProduct.getImages();
+        for (ProductImage productImage : productImages) {
+            this.productImageRepository.delete(productImage);
+        }
         this.productRepository.deleteById(id);
     }
 
@@ -99,8 +112,19 @@ public class ProductService {
         product.setCategory(req.getCategory());
         product.setQuantity(req.getQuantity());
         product.setSold(req.getSold());
-        product.setImage(req.getImage());
+
     }
+
+    public List<ProductImage> addImage(List<String> images, Product product){
+        List<ProductImage> imageList = new ArrayList<>();
+        for(String image : images){
+            ProductImage productImage = new ProductImage();
+            productImage.setImageUrl(image);
+            productImage.setProduct(product);
+            this.productImageRepository.save(productImage);
+            imageList.add(productImage);
+        }
+        return imageList;   }
 
     public ResCreateProductDTO convertToResCreateProductDTO(Product product) {
         ResCreateProductDTO resCreateProductDTO = new ResCreateProductDTO();
@@ -114,7 +138,13 @@ public class ProductService {
         resCreateProductDTO.setTarget(product.getTarget());
         resCreateProductDTO.setCategory(product.getCategory());
         resCreateProductDTO.setBrand(product.getBrand());
-        resCreateProductDTO.setImage(product.getImage());
+
+        List<String> images = new ArrayList<>();
+        List<ProductImage> productImages = product.getImages();
+        for(ProductImage productImage : productImages){
+            images.add(productImage.getImageUrl());
+        }
+        resCreateProductDTO.setImages(images);
         resCreateProductDTO.setCreatedAt(product.getCreatedAt());
         return resCreateProductDTO;
     }
@@ -131,7 +161,13 @@ public class ProductService {
         resUpdateProductDTO.setTarget(product.getTarget());
         resUpdateProductDTO.setCategory(product.getCategory());
         resUpdateProductDTO.setBrand(product.getBrand());
-        resUpdateProductDTO.setImage(product.getImage());
+
+        List<String> images = new ArrayList<>();
+        List<ProductImage> productImages = product.getImages();
+        for(ProductImage productImage : productImages){
+            images.add(productImage.getImageUrl());
+        }
+        resUpdateProductDTO.setImages(images);
         resUpdateProductDTO.setUpdatedAt(product.getUpdatedAt());
         return resUpdateProductDTO;
     }
@@ -148,7 +184,13 @@ public class ProductService {
         resProductDTO.setTarget(product.getTarget());
         resProductDTO.setCategory(product.getCategory());
         resProductDTO.setBrand(product.getBrand());
-        resProductDTO.setImage(product.getImage());
+
+        List<String> images = new ArrayList<>();
+        List<ProductImage> productImages = product.getImages();
+        for(ProductImage productImage : productImages){
+            images.add(productImage.getImageUrl());
+        }
+        resProductDTO.setImages(images);
         resProductDTO.setCreatedAt(product.getCreatedAt());
         resProductDTO.setUpdatedAt(product.getUpdatedAt());
         return resProductDTO;

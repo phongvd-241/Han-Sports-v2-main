@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -30,34 +31,38 @@ public class FileController {
 
     @PostMapping("/files")
     @ApiMessage("Upload single file")
-    public ResponseEntity<ResUploadFileDTO> upload(@RequestParam(name = "file", required = false) MultipartFile file,
+    public ResponseEntity<ResUploadFileDTO> upload(@RequestParam(name = "files", required = false) List<MultipartFile> files,
                                                    @RequestParam("folder") String folder)
             throws IOException, StorageException {
         //validation
-        if (file == null || file.isEmpty()) {
+        if (files == null || files.isEmpty()) {
             throw new StorageException("file is empty. Please upload the file");
         }
 
-        String fileName = file.getOriginalFilename();
-        List<String> allowedExtensions = Arrays.asList("pdf", "jpg", "jpeg", "png", "doc", "docx");
+        List<String> fileNames = new ArrayList<>();
 
-        String extension = "";
-        if (fileName != null && fileName.lastIndexOf(".") >= 0) {
-            extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
+        for(MultipartFile file : files) {
+            String fileName = file.getOriginalFilename();
+            List<String> allowedExtensions = Arrays.asList("pdf", "jpg", "jpeg", "png", "doc", "docx");
+
+            String extension = "";
+            if (fileName != null && fileName.lastIndexOf(".") >= 0) {
+                extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
+            }
+            boolean isValid = allowedExtensions.contains(extension);
+
+            if (!isValid) {
+                throw new StorageException("Invalid file extension. Only allows " + allowedExtensions.toString());
+            }
+            //create a directory if not exist
+            this.fileService.createDirectory(folder);
+
+            //storage file
+            String uploadedFile = this.fileService.store(file, folder);
+            fileNames.add(uploadedFile);
         }
-        boolean isValid = allowedExtensions.contains(extension);
 
-        if (!isValid) {
-            throw new StorageException("Invalid file extension. Only allows " + allowedExtensions.toString());
-        }
-        //create a directory if not exist
-        this.fileService.createDirectory(folder);
-
-        //storage file
-        String uploadedFile = this.fileService.store(file, folder);
-        ResUploadFileDTO res = new ResUploadFileDTO(uploadedFile, Instant.now());
-
-
+        ResUploadFileDTO res = new ResUploadFileDTO(fileNames, Instant.now());
         return ResponseEntity.ok().body(res);
     }
 

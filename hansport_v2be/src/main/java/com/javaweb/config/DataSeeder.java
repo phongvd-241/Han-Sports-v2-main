@@ -12,6 +12,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
+
 @Configuration
 public class DataSeeder {
 
@@ -62,7 +64,7 @@ public class DataSeeder {
 
     private void seedProduct(ProductRepository productRepository, String name, double price,
                              String detailDesc, String shortDesc, long quantity,
-                             String brand, String target, String image) {
+                             String brand, String target, List<String> images) {
         if (productRepository.existsByName(name)) {
             return;
         }
@@ -75,7 +77,6 @@ public class DataSeeder {
         product.setSold(0);
         product.setBrand(brand);
         product.setTarget(target);
-        product.setImage(image);
         productRepository.save(product);
     }
 }

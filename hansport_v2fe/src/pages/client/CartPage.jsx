@@ -4,7 +4,7 @@ import { cartApi } from "../../api/cartApi";
 import { useCartStore } from "../../store/useCartStore";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useSettingStore } from "../../store/useSettingStore";
-import { getImageUrl, formatVND } from "../../utils/constants";
+import { getImageUrl, formatVND, getFirstImage } from "../../utils/constants";
 
 export default function CartPage() {
   const navigate = useNavigate();
@@ -98,11 +98,11 @@ export default function CartPage() {
               {cartItems.length}
             </span>
           </h1>
-          
+
           {cartItems.length > 0 && (
             <div className="flex items-center gap-2">
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 id="select-all"
                 className="w-5 h-5 accent-brand-blue cursor-pointer"
                 checked={selectedIds.length === cartItems.length && cartItems.length > 0}
@@ -120,7 +120,7 @@ export default function CartPage() {
           <div className="lg:col-span-2 flex flex-col gap-4">
             {cartItems.map((item) => {
               const p = item.product || item;
-              const imgUrl = getImageUrl(p.image);
+              const imgUrl = getImageUrl(getFirstImage(p));
               const isUpdating = updating === item.id;
               const isRemoving = removing === item.id;
               const isSelected = selectedIds.includes(item.id);
@@ -129,14 +129,14 @@ export default function CartPage() {
                 <div key={item.id} className={`card p-4 flex gap-4 items-center transition-all ${(isUpdating || isRemoving) ? "opacity-60" : "opacity-100"} ${isSelected ? "border-brand-blue/30 bg-brand-blue/[0.02]" : ""}`}>
                   {/* Checkbox */}
                   <div className="flex-shrink-0 pr-2">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={isSelected}
                       onChange={() => toggleSelect(item.id)}
                       className="w-5 h-5 accent-brand-blue cursor-pointer"
                     />
                   </div>
-                  
+
                   {/* Image */}
                   <Link to={`/products/${p.id}`} className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 bg-surface-muted rounded-xl overflow-hidden">
                     {imgUrl ? (

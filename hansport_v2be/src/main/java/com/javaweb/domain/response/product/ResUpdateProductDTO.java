@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.List;
 
 @Getter
 @Setter
@@ -29,7 +30,7 @@ public class ResUpdateProductDTO {
     private String brand;
     private String target;
     private String category;
-    private String image;
+    private List<String> images;
 
     private Instant updatedAt;
 }

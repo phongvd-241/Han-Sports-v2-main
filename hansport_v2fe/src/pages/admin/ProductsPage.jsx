@@ -6,16 +6,25 @@ import { notifySync, syncEvent } from "../../utils/sync";
 
 const EMPTY_FORM = {
   name: "", price: "", quantity: "", brand: "", target: "", category: "",
-  shortDesc: "", detailDesc: "", image: "",
+  shortDesc: "", detailDesc: "", images: [], image: "",
 };
 
 const TARGETS = ["Nam", "Nữ", "Unisex", "Trẻ em"];
+
+const getProductFirstImage = (p) => {
+  if (!p) return "";
+  if (Array.isArray(p.images) && p.images.length > 0) {
+    const first = p.images[0];
+    return typeof first === "string" ? first : (first.imageUrl || first.image || "");
+  }
+  return p.image || "";
+};
 
 export default function ProductsPage() {
   const { getSetting } = useSettingStore();
   const CATEGORIES = getSetting("CATEGORIES", []);
   const BRANDS = getSetting("BRANDS", ["Yonex", "Victor", "Lining", "Khác"]);
-  
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
@@ -58,40 +67,70 @@ export default function ProductsPage() {
     setForm({
       name: p.name || "", price: String(p.price || ""), quantity: String(p.quantity || ""),
       brand: p.brand || "", target: p.target || "", category: p.category || "",
-      shortDesc: p.shortDesc || "", detailDesc: p.detailDesc || "", image: p.image || "",
+      shortDesc: p.shortDesc || "", detailDesc: p.detailDesc || "",
+      images: p.images ? p.images.map((it) => (typeof it === "string" ? it : (it.imageUrl || it))) : [],
+      image: p.image || (Array.isArray(p.images) && p.images.length ? (typeof p.images[0] === "string" ? p.images[0] : (p.images[0].imageUrl || p.images[0])) : ""),
     });
+    if (fileRef.current) fileRef.current.value = null;
     setModal("edit");
   };
   const openDelete = (p) => { setSelectedProduct(p); setModal("delete"); };
-  const closeModal = () => { setModal(null); setSelectedProduct(null); };
+  const closeModal = () => { setModal(null); setSelectedProduct(null); setForm(EMPTY_FORM); if (fileRef.current) fileRef.current.value = null; };
 
   const handleReset = () => {
     if (!selectedProduct) return;
     setForm({
-      name: selectedProduct.name || "", 
-      price: String(selectedProduct.price || ""), 
+      name: selectedProduct.name || "",
+      price: String(selectedProduct.price || ""),
       quantity: String(selectedProduct.quantity || ""),
-      brand: selectedProduct.brand || "", 
-      target: selectedProduct.target || "", 
+      brand: selectedProduct.brand || "",
+      target: selectedProduct.target || "",
       category: selectedProduct.category || "",
       shortDesc: selectedProduct.shortDesc || "",
-      detailDesc: selectedProduct.detailDesc || "", 
-      image: selectedProduct.image || "",
+      detailDesc: selectedProduct.detailDesc || "",
+      images: selectedProduct.images ? selectedProduct.images.map((it) => (typeof it === "string" ? it : (it.imageUrl || it))) : [],
+      image: selectedProduct.image || (Array.isArray(selectedProduct.images) && selectedProduct.images.length ? (typeof selectedProduct.images[0] === "string" ? selectedProduct.images[0] : (selectedProduct.images[0].imageUrl || selectedProduct.images[0])) : ""),
     });
     showToast("Đã khôi phục dữ liệu ban đầu");
   };
 
+  const removeImage = (idx) => {
+    setForm((f) => {
+      const images = [...(f.images || [])];
+      const removed = images.splice(idx, 1);
+      let image = f.image;
+      if (removed && removed[0] === image) {
+        image = images[0] || "";
+      }
+      return { ...f, images, image };
+    });
+  };
+
+  const setMainImage = (img) => {
+    setForm((f) => ({ ...f, image: img }));
+  };
+
   const handleUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
     setUploading(true);
     try {
-      const res = await productApi.uploadFile(file);
-      const fileName = res.data?.data?.fileName || res.data?.fileName || file.name;
-      setForm((f) => ({ ...f, image: fileName }));
-      showToast("Upload ảnh thành công!");
-    } catch { showToast("Upload ảnh thất bại!", "error"); }
-    finally { setUploading(false); }
+      // use new API to upload multiple files
+      const res = await productApi.uploadFiles(files);
+      // backend may return file names under various keys; handle common cases
+      const uploaded = res.data?.data?.fileName || res.data?.fileName || res.data?.data?.fileNames || res.data?.fileNames || [];
+      const uploadedList = Array.isArray(uploaded) ? uploaded : (uploaded ? [uploaded] : []);
+      if (uploadedList.length > 0) {
+        setForm((f) => ({ ...f, images: [...(f.images || []), ...uploadedList], image: f.image || uploadedList[0] }));
+        showToast("Upload ảnh thành công!");
+      } else {
+        showToast("Không nhận được tên file trả về", "error");
+      }
+      if (fileRef.current) fileRef.current.value = null;
+    } catch (err) {
+      console.error(err);
+      showToast(err.response?.data?.message || err.message || "Upload ảnh thất bại!", "error");
+    } finally { setUploading(false); }
   };
 
   const handleSave = async (e) => {
@@ -199,8 +238,8 @@ export default function ProductsPage() {
                   <td className="px-4 py-3 text-text-muted text-xs">{page * 10 + i + 1}</td>
                   <td className="px-4 py-3">
                     <div className="w-12 h-12 rounded-lg bg-surface-muted overflow-hidden flex-shrink-0">
-                      {p.image
-                        ? <img src={getImageUrl(p.image)} alt={p.name} className="w-full h-full object-contain p-1" />
+                      {getProductFirstImage(p)
+                        ? <img src={getImageUrl(getProductFirstImage(p))} alt={p.name} className="w-full h-full object-contain p-1" />
                         : <div className="w-full h-full flex items-center justify-center text-text-muted"><span className="material-symbols-outlined" style={{ fontSize: 20 }}>image_not_supported</span></div>
                       }
                     </div>
@@ -329,13 +368,16 @@ export default function ProductsPage() {
                   <div className="flex gap-4 items-start">
                     {/* Preview */}
                     <div className="w-24 h-24 rounded-xl border-2 border-dashed border-surface-border bg-surface-muted flex items-center justify-center flex-shrink-0 overflow-hidden">
-                      {form.image
-                        ? <img src={getImageUrl(form.image)} alt="Preview" className="w-full h-full object-contain p-2" />
-                        : <span className="material-symbols-outlined text-text-muted" style={{ fontSize: 32 }}>image</span>
-                      }
+                      {form.images && form.images.length > 0 ? (
+                        <div className="w-full h-full grid grid-cols-1 gap-0">
+                          <img src={getImageUrl(form.image || form.images[0])} alt="Preview" className="w-full h-full object-contain p-2" />
+                        </div>
+                      ) : (
+                        <span className="material-symbols-outlined text-text-muted" style={{ fontSize: 32 }}>image</span>
+                      )}
                     </div>
                     <div className="flex-1">
-                      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+                      <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} />
                       <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
                         className="btn-outline py-2 px-4 text-sm disabled:opacity-50">
                         {uploading
@@ -344,11 +386,31 @@ export default function ProductsPage() {
                         }
                       </button>
                       <p className="text-xs text-text-muted mt-2">JPG, PNG, WebP. Tối đa 5MB.</p>
-                      {form.image && (
-                        <p className="text-xs text-brand-green mt-1 flex items-center gap-1">
-                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>check_circle</span>
-                          {form.image}
-                        </p>
+                      {form.images && form.images.length > 0 && (
+                        <div className="text-xs text-brand-green mt-1 flex flex-col gap-2">
+                          <p className="flex items-center gap-1">
+                            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>check_circle</span>
+                            {form.images.length} ảnh đã chọn
+                          </p>
+                          <div className="flex gap-2 overflow-x-auto items-center">
+                            {form.images.map((img, idx) => (
+                              <div key={idx} className="flex items-center gap-2 bg-surface-muted rounded px-2 py-1">
+                                <img src={getImageUrl(img)} alt={img} className="w-8 h-8 object-contain" />
+                                <div className="flex flex-col text-[11px]">
+                                  <span className="truncate max-w-[120px]">{img}</span>
+                                  <div className="flex gap-1 mt-0.5">
+                                    <button type="button" onClick={() => setMainImage(img)} className={`text-[11px] px-2 py-0.5 rounded ${form.image === img ? 'bg-brand-blue text-white' : 'bg-white text-text-muted border'}`}>
+                                      {form.image === img ? 'Ảnh chính' : 'Đặt ảnh chính'}
+                                    </button>
+                                    <button type="button" onClick={() => removeImage(idx)} className="text-[11px] px-2 py-0.5 rounded bg-red-50 text-danger">
+                                      Xóa
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>

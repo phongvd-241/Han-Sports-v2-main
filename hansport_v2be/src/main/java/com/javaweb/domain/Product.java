@@ -10,6 +10,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "products")
@@ -44,7 +46,9 @@ public class Product {
     private String brand;
     private String target;
     private String category;
-    private String image;
+
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductImage> images;
 
     private Instant createdAt;
 

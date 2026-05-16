@@ -265,7 +265,7 @@ public class OrderService {
         ResOrderDetailDTO.ProductOrderDetail productCartDetail = new ResOrderDetailDTO.ProductOrderDetail();
         productCartDetail.setId(orderDetail.getProduct().getId());
         productCartDetail.setName(orderDetail.getProduct().getName());
-        productCartDetail.setImage(orderDetail.getProduct().getImage());
+        productCartDetail.setImage(orderDetail.getProduct().getImages().get(0).getImageUrl());
 
         resOrderDetailDTO.setProduct(productCartDetail);
 

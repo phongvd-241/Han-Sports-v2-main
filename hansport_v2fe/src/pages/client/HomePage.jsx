@@ -7,7 +7,7 @@ import { useAuthStore } from "../../store/useAuthStore";
 import { useCartStore } from "../../store/useCartStore";
 import { useSettingStore } from "../../store/useSettingStore";
 import ProductCard from "../../components/common/ProductCard";
-import { formatVND, getImageUrl } from "../../utils/constants";
+import { formatVND, getImageUrl, getFirstImage } from "../../utils/constants";
 import { onSync, syncEvent } from "../../utils/sync";
 
 
@@ -57,7 +57,7 @@ export default function HomePage() {
   const [heroIdx, setHeroIdx] = useState(0);
   const [activeTab, setActiveTab] = useState("all");
   const { h, m, s } = useCountdown(8);
-  
+
   const HERO_SLIDES = getSetting("HERO_SLIDES", []);
   const CATEGORIES = getSetting("CATEGORIES", []);
 
@@ -109,88 +109,88 @@ export default function HomePage() {
 
       {/* ── Hero Banner ── */}
       {HERO_SLIDES.length > 0 && (
-      <section 
-        className="relative overflow-hidden group/hero select-none touch-none"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-      >
-        <div 
-          className="flex transition-transform duration-700 ease-out"
-          style={{ transform: `translateX(-${heroIdx * 100}%)` }}
-          onPointerDown={(e) => {
-            const startX = e.clientX;
-            setIsPaused(true);
-            setDragged(false);
-            const handleMove = (moveEvent) => {
-              const diff = moveEvent.clientX - startX;
-              if (Math.abs(diff) > 10) setDragged(true);
-              if (Math.abs(diff) > 100) {
-                if (diff > 0) setHeroIdx((i) => (i > 0 ? i - 1 : HERO_SLIDES.length - 1));
-                else setHeroIdx((i) => (i < HERO_SLIDES.length - 1 ? i + 1 : 0));
-                cleanup();
-              }
-            };
-            const cleanup = () => {
-              setIsPaused(false);
-              window.removeEventListener("pointermove", handleMove);
-              window.removeEventListener("pointerup", cleanup);
-            };
-            window.addEventListener("pointermove", handleMove);
-            window.addEventListener("pointerup", cleanup);
-          }}
+        <section
+          className="relative overflow-hidden group/hero select-none touch-none"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
         >
-          {HERO_SLIDES.map((slide, i) => {
-            const Content = (
-              <div className="w-full h-full relative overflow-hidden bg-surface-muted">
-                {slide.image ? (
-                  <img 
-                    src={getImageUrl(slide.image)} 
-                    alt="Banner" 
-                    className="w-full h-full object-cover select-none pointer-events-none" 
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-brand-blue-light text-brand-blue/30">
-                    <span className="material-symbols-outlined" style={{ fontSize: 80 }}>image</span>
-                  </div>
-                )}
-              </div>
-            );
+          <div
+            className="flex transition-transform duration-700 ease-out"
+            style={{ transform: `translateX(-${heroIdx * 100}%)` }}
+            onPointerDown={(e) => {
+              const startX = e.clientX;
+              setIsPaused(true);
+              setDragged(false);
+              const handleMove = (moveEvent) => {
+                const diff = moveEvent.clientX - startX;
+                if (Math.abs(diff) > 10) setDragged(true);
+                if (Math.abs(diff) > 100) {
+                  if (diff > 0) setHeroIdx((i) => (i > 0 ? i - 1 : HERO_SLIDES.length - 1));
+                  else setHeroIdx((i) => (i < HERO_SLIDES.length - 1 ? i + 1 : 0));
+                  cleanup();
+                }
+              };
+              const cleanup = () => {
+                setIsPaused(false);
+                window.removeEventListener("pointermove", handleMove);
+                window.removeEventListener("pointerup", cleanup);
+              };
+              window.addEventListener("pointermove", handleMove);
+              window.addEventListener("pointerup", cleanup);
+            }}
+          >
+            {HERO_SLIDES.map((slide, i) => {
+              const Content = (
+                <div className="w-full h-full relative overflow-hidden bg-surface-muted">
+                  {getFirstImage(slide) ? (
+                    <img
+                      src={getImageUrl(getFirstImage(slide))}
+                      alt="Banner"
+                      className="w-full h-full object-cover select-none pointer-events-none"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-brand-blue-light text-brand-blue/30">
+                      <span className="material-symbols-outlined" style={{ fontSize: 80 }}>image</span>
+                    </div>
+                  )}
+                </div>
+              );
 
-            return (
-              <div key={i} className="min-w-full h-[250px] md:h-[450px] lg:h-[550px]">
-                {slide.ctaLink ? (
-                  <Link 
-                    to={slide.ctaLink} 
-                    className="block w-full h-full cursor-pointer"
-                    onClick={(e) => { if (dragged) e.preventDefault(); }}
-                  >
-                    {Content}
-                  </Link>
-                ) : Content}
-              </div>
-            );
-          })}
-        </div>
+              return (
+                <div key={i} className="min-w-full h-[250px] md:h-[450px] lg:h-[550px]">
+                  {slide.ctaLink ? (
+                    <Link
+                      to={slide.ctaLink}
+                      className="block w-full h-full cursor-pointer"
+                      onClick={(e) => { if (dragged) e.preventDefault(); }}
+                    >
+                      {Content}
+                    </Link>
+                  ) : Content}
+                </div>
+              );
+            })}
+          </div>
 
-        {/* Navigation Arrows */}
-        <button onClick={() => setHeroIdx((i) => (i > 0 ? i - 1 : HERO_SLIDES.length - 1))} 
-          className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover/hero:opacity-100 transition-opacity hover:bg-white/20">
-          <span className="material-symbols-outlined text-white">chevron_left</span>
-        </button>
-        <button onClick={() => setHeroIdx((i) => (i < HERO_SLIDES.length - 1 ? i + 1 : 0))} 
-          className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover/hero:opacity-100 transition-opacity hover:bg-white/20">
-          <span className="material-symbols-outlined text-white">chevron_right</span>
-        </button>
+          {/* Navigation Arrows */}
+          <button onClick={() => setHeroIdx((i) => (i > 0 ? i - 1 : HERO_SLIDES.length - 1))}
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover/hero:opacity-100 transition-opacity hover:bg-white/20">
+            <span className="material-symbols-outlined text-white">chevron_left</span>
+          </button>
+          <button onClick={() => setHeroIdx((i) => (i < HERO_SLIDES.length - 1 ? i + 1 : 0))}
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover/hero:opacity-100 transition-opacity hover:bg-white/20">
+            <span className="material-symbols-outlined text-white">chevron_right</span>
+          </button>
 
-        {/* Dots */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-          {HERO_SLIDES.map((_, i) => (
-            <button key={i} onClick={() => setHeroIdx(i)}
-              className={`rounded-full transition-all duration-300 ${i === heroIdx ? "w-6 h-2 bg-white" : "w-2 h-2 bg-white/40 hover:bg-white/60"}`}
-            />
-          ))}
-        </div>
-      </section>
+          {/* Dots */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+            {HERO_SLIDES.map((_, i) => (
+              <button key={i} onClick={() => setHeroIdx(i)}
+                className={`rounded-full transition-all duration-300 ${i === heroIdx ? "w-6 h-2 bg-white" : "w-2 h-2 bg-white/40 hover:bg-white/60"}`}
+              />
+            ))}
+          </div>
+        </section>
       )}
 
       {/* ── Categories ── */}
@@ -257,14 +257,14 @@ export default function HomePage() {
 
         {/* Category Tabs */}
         <div className="flex flex-wrap border border-surface-border bg-white rounded-t-xl overflow-hidden shadow-sm">
-          <button 
+          <button
             onClick={() => setActiveTab("all")}
             className={`flex-1 min-w-[120px] py-4 px-4 text-sm font-bold transition-all border-r border-surface-border last:border-0 ${activeTab === "all" ? "bg-gradient-to-r from-brand-green to-brand-blue text-white" : "text-text-primary hover:bg-surface-muted"}`}
           >
             Tất cả
           </button>
           {CATEGORIES.map((cat) => (
-            <button 
+            <button
               key={cat.name}
               onClick={() => setActiveTab(cat.name)}
               className={`flex-1 min-w-[120px] py-4 px-4 text-sm font-bold transition-all border-r border-surface-border last:border-0 ${activeTab === cat.name ? "bg-gradient-to-r from-brand-green to-brand-blue text-white" : "text-text-primary hover:bg-surface-muted"}`}
@@ -280,7 +280,7 @@ export default function HomePage() {
           <div className="absolute top-0 left-0 right-0 h-1 bg-brand-blue/30" />
 
           {/* Navigation Arrows */}
-          <button 
+          <button
             onClick={() => {
               const el = document.getElementById("tabbed-product-scroll");
               el.scrollBy({ left: -300, behavior: "smooth" });
@@ -289,7 +289,7 @@ export default function HomePage() {
           >
             <span className="material-symbols-outlined">chevron_left</span>
           </button>
-          <button 
+          <button
             onClick={() => {
               const el = document.getElementById("tabbed-product-scroll");
               el.scrollBy({ left: 300, behavior: "smooth" });
@@ -304,7 +304,7 @@ export default function HomePage() {
               {[...Array(5)].map((_, i) => <div key={i} className="skeleton h-64 rounded-lg" />)}
             </div>
           ) : (
-            <div 
+            <div
               key={activeTab}
               id="tabbed-product-scroll"
               className="flex overflow-x-auto gap-4 md:gap-6 hide-scrollbar scroll-smooth py-2 px-1 animate-fade-up"
@@ -313,7 +313,7 @@ export default function HomePage() {
                 products.filter(p => activeTab === "all" || p.category === activeTab).map((p) => (
                   <div key={p.id} className="min-w-[180px] md:min-w-[240px] max-w-[240px] bg-white rounded-2xl p-3 md:p-4 hover:shadow-[0_20px_50px_rgba(29,78,216,0.15)] hover:-translate-y-2 transition-all duration-500 group/card flex flex-col border border-surface-border hover:border-brand-blue/30 relative">
                     <div className="relative aspect-square mb-4 overflow-hidden rounded-xl bg-surface-soft">
-                      <img src={getImageUrl(p.image)} alt={p.name} className="w-full h-full object-contain transform group-hover/card:scale-110 transition-transform duration-700 ease-out" />
+                      <img src={getImageUrl(getFirstImage(p))} alt={p.name} className="w-full h-full object-contain transform group-hover/card:scale-110 transition-transform duration-700 ease-out" />
                       <div className="absolute inset-0 bg-gradient-to-t from-brand-blue/5 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
                     </div>
                     <h3 className="text-sm font-bold text-text-primary mb-2 line-clamp-2 flex-grow h-10 group-hover:text-brand-blue transition-colors">
@@ -322,9 +322,9 @@ export default function HomePage() {
                     <div className="mt-auto flex items-center justify-between">
                       <p className="text-brand-blue font-black text-base md:text-lg">{formatVND(p.price)}</p>
                     </div>
-                    
+
                     {/* Floating Add to Cart */}
-                    <button 
+                    <button
                       onClick={() => handleAddCart(p)}
                       className="mt-4 w-full py-3 bg-gradient-to-r from-brand-green to-brand-blue text-white text-xs font-black rounded-xl opacity-0 group-hover/card:opacity-100 transition-all transform translate-y-4 group-hover/card:translate-y-0 shadow-lg shadow-brand-blue/20 flex items-center justify-center gap-2 active:scale-95"
                     >

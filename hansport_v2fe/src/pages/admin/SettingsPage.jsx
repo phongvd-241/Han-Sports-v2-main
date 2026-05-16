@@ -3,7 +3,7 @@ import { useSettingStore } from "../../store/useSettingStore";
 import { settingApi } from "../../api/settingApi";
 import { productApi } from "../../api/productApi";
 import { notifySync, syncEvent } from "../../utils/sync";
-import { getImageUrl } from "../../utils/constants";
+import { getImageUrl, getFirstImage } from "../../utils/constants";
 import toast from "react-hot-toast";
 
 export default function SettingsPage() {
@@ -27,7 +27,7 @@ export default function SettingsPage() {
   }, [settings]);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-  
+
   const handleSlideChange = (index, field, value) => {
     const newSlides = [...form.slides];
     newSlides[index] = { ...newSlides[index], [field]: value };
@@ -144,7 +144,7 @@ export default function SettingsPage() {
       </h1>
 
       <form onSubmit={handleSave} className="card p-6 flex flex-col gap-6">
-        
+
         {/* Banners */}
         <div>
           <div className="flex items-center justify-between mb-4">
@@ -156,7 +156,7 @@ export default function SettingsPage() {
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span> Thêm Banner
             </button>
           </div>
-          
+
           <div className="flex flex-col gap-4">
             {form.slides.map((slide, i) => (
               <div key={i} className="p-4 border border-surface-border rounded-xl bg-surface-muted relative group">
@@ -168,9 +168,9 @@ export default function SettingsPage() {
                   <div className="w-full">
                     <label className="block text-xs font-semibold text-text-secondary mb-2">Hình ảnh Banner (Nên sử dụng ảnh rộng 1200x600px)</label>
                     <div className="flex items-center gap-6">
-                      {slide.image ? (
+                      {getFirstImage(slide) ? (
                         <div className="relative w-32 h-20 rounded-lg overflow-hidden border border-surface-border group/img">
-                          <img src={getImageUrl(slide.image)} alt="Banner" className="w-full h-full object-cover" />
+                          <img src={getImageUrl(getFirstImage(slide))} alt="Banner" className="w-full h-full object-cover" />
                           <button type="button" onClick={() => handleSlideChange(i, "image", "")} className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
                             <span className="material-symbols-outlined text-white" style={{ fontSize: 20 }}>delete</span>
                           </button>
@@ -184,11 +184,11 @@ export default function SettingsPage() {
                       )}
                       <div className="flex-1">
                         <label className="block text-[10px] font-bold text-text-muted mb-1 uppercase tracking-wider">Đường dẫn khi ấn vào banner (Ví dụ: /shop)</label>
-                        <input 
-                          value={slide.ctaLink || ""} 
-                          onChange={(e) => handleSlideChange(i, "ctaLink", e.target.value)} 
-                          className="input-field text-xs py-2" 
-                          placeholder="Nhập link liên kết..." 
+                        <input
+                          value={slide.ctaLink || ""}
+                          onChange={(e) => handleSlideChange(i, "ctaLink", e.target.value)}
+                          className="input-field text-xs py-2"
+                          placeholder="Nhập link liên kết..."
                         />
                       </div>
                     </div>
@@ -273,7 +273,7 @@ export default function SettingsPage() {
         </div>
 
         <hr className="border-surface-border" />
-        
+
         {/* Hotline */}
         <div>
           <h2 className="text-title font-bold text-text-primary mb-1">Hotline & Liên hệ</h2>

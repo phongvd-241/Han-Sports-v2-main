@@ -6,7 +6,7 @@ import { cartApi } from "../../api/cartApi";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useCartStore } from "../../store/useCartStore";
 import ProductCard from "../../components/common/ProductCard";
-import { getImageUrl, formatVND } from "../../utils/constants";
+import { getImageUrl, formatVND, getFirstImage } from "../../utils/constants";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -17,6 +17,7 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState(null);
   const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeImage, setActiveImage] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
 
@@ -36,6 +37,26 @@ export default function ProductDetailPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (!product) return;
+    const first = getFirstImage(product);
+    setActiveImage(first);
+  }, [product]);
+
+  const prevImage = () => {
+    if (!imagesArr || imagesArr.length === 0) return;
+    const idx = imagesArr.indexOf(activeImage);
+    const nextIdx = idx <= 0 ? imagesArr.length - 1 : idx - 1;
+    setActiveImage(imagesArr[nextIdx]);
+  };
+
+  const nextImage = () => {
+    if (!imagesArr || imagesArr.length === 0) return;
+    const idx = imagesArr.indexOf(activeImage);
+    const nextIdx = (idx + 1) % imagesArr.length;
+    setActiveImage(imagesArr[nextIdx]);
+  };
 
 
 
@@ -85,7 +106,12 @@ export default function ProductDetailPage() {
     </div>
   );
 
-  const imageUrl = getImageUrl(product.image);
+  const imagesArr = product ? (
+    Array.isArray(product.images) ? product.images.map(it => (typeof it === 'string' ? it : (it.imageUrl || it)))
+      : (product.image ? [product.image] : [])
+  ) : [];
+
+  const imageUrl = getImageUrl(activeImage);
 
   return (
     <div className="min-h-screen bg-surface-soft">
@@ -104,17 +130,38 @@ export default function ProductDetailPage() {
         {/* Product Hero */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
           {/* Image */}
-          <div className="card p-6 flex items-center justify-center" style={{ minHeight: 420 }}>
-            {imageUrl ? (
-              <img
-                src={imageUrl}
-                alt={product.name}
-                className="max-h-[420px] w-full object-contain"
-              />
-            ) : (
-              <div className="flex flex-col items-center text-text-muted">
-                <span className="material-symbols-outlined" style={{ fontSize: 80 }}>image_not_supported</span>
-                <p className="mt-2 text-sm">Chưa có ảnh sản phẩm</p>
+          <div className="card p-6 flex items-center justify-center flex-col gap-4" style={{ minHeight: 420 }}>
+            <div className="relative w-full flex items-center justify-center">
+              {imageUrl ? (
+                <>
+                  <button type="button" onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/80 flex items-center justify-center hover:bg-white transition-shadow shadow-sm">
+                    <span className="material-symbols-outlined">chevron_left</span>
+                  </button>
+                  <img
+                    src={imageUrl}
+                    alt={product.name}
+                    className="max-h-[420px] w-full object-contain"
+                  />
+                  <button type="button" onClick={nextImage} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/80 flex items-center justify-center hover:bg-white transition-shadow shadow-sm">
+                    <span className="material-symbols-outlined">chevron_right</span>
+                  </button>
+                </>
+              ) : (
+                <div className="flex flex-col items-center text-text-muted">
+                  <span className="material-symbols-outlined" style={{ fontSize: 80 }}>image_not_supported</span>
+                  <p className="mt-2 text-sm">Chưa có ảnh sản phẩm</p>
+                </div>
+              )}
+            </div>
+
+            {imagesArr && imagesArr.length > 1 && (
+              <div className="w-full flex gap-2 overflow-x-auto mt-2 px-1">
+                {imagesArr.map((img, idx) => (
+                  <button key={idx} type="button" onClick={() => setActiveImage(img)}
+                    className={`w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 border ${activeImage === img ? 'border-brand-blue' : 'border-surface-border'}`}>
+                    <img src={getImageUrl(img)} alt={`thumb-${idx}`} className="w-full h-full object-contain p-1" />
+                  </button>
+                ))}
               </div>
             )}
           </div>
