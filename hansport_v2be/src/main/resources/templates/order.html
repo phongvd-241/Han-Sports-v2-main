@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Xác nhận đơn hàng</title>
+</head>
+<body style="font-family: Arial, sans-serif;">
+
+<h2>Xin chào <span th:text="${customerName}"></span>,</h2>
+
+<p>Cảm ơn bạn đã đặt hàng tại cửa hàng của chúng tôi.</p>
+
+<p>
+    <strong>Số điện thoại:</strong>
+    <span th:text="${phone}"></span>
+</p>
+
+<p>
+    <strong>Địa chỉ nhận hàng:</strong>
+    <span th:text="${address}"></span>
+</p>
+
+<h3>Thông tin sản phẩm</h3>
+
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+    <thead>
+    <tr>
+        <th>Tên sản phẩm</th>
+        <th>Số lượng</th>
+        <th>Giá</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr th:each="item : ${items}">
+        <td th:text="${item.productName}"></td>
+        <td th:text="${item.quantity}"></td>
+        <td th:text="${#numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT')} + ' đ'"></td>
+    </tr>
+    </tbody>
+</table>
+
+<h3>
+    Tổng tiền:
+    <span th:text="${#numbers.formatDecimal(totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'"></span>
+</h3>
+
+<p>Chúng tôi sẽ gửi đơn hàng của bạn trong thời gian sớm nhất.</p>
+
+<p>Trân trọng!</p>
+
+</body>
+</html>

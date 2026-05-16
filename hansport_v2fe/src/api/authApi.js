@@ -15,4 +15,8 @@ export const authApi = {
 
   logout: () =>
     axiosInstance.post("/api/v1/auth/logout"),
+
+  // Google login: gửi ID token của Google về backend
+  googleLogin: (idToken) =>
+    axiosPublic.post("/api/v1/auth/google", { idToken }),
 };

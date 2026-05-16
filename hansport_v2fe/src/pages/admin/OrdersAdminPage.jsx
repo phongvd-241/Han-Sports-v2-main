@@ -42,7 +42,17 @@ export default function OrdersAdminPage() {
       await orderApi.updateOrder({ id: order.id, status: newStatus });
       setOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, status: newStatus } : o));
       if (selected?.id === order.id) setSelected({ ...selected, status: newStatus });
-      showToast(`Cập nhật trạng thái thành công!`);
+      if (newStatus === "PROCESSING") {
+        try {
+          await orderApi.sendOrderEmail(order.id);
+          showToast("Cập nhật trạng thái thành công! Đã gửi email.");
+        } catch (e) {
+          console.error("Gửi email thất bại", e);
+          showToast("Cập nhật thành công nhưng gửi email thất bại!", "error");
+        }
+      } else {
+        showToast(`Cập nhật trạng thái thành công!`);
+      }
     } catch { showToast("Cập nhật thất bại!", "error"); }
     finally { setUpdating(false); }
   };
@@ -109,42 +119,42 @@ export default function OrdersAdminPage() {
                 <tbody className="divide-y divide-surface-border">
                   {loading
                     ? [...Array(6)].map((_, i) => (
-                        <tr key={i}>{[...Array(6)].map((_, j) => <td key={j} className="px-4 py-3"><div className="skeleton h-7 rounded" /></td>)}</tr>
-                      ))
+                      <tr key={i}>{[...Array(6)].map((_, j) => <td key={j} className="px-4 py-3"><div className="skeleton h-7 rounded" /></td>)}</tr>
+                    ))
                     : orders.length === 0
-                    ? (
-                      <tr><td colSpan={6} className="px-4 py-16 text-center text-text-muted">
-                        <span className="material-symbols-outlined" style={{ fontSize: 48 }}>receipt_long</span>
-                        <p className="mt-2 font-semibold">Không có đơn hàng nào</p>
-                      </td></tr>
-                    )
-                    : orders.map((order) => {
-                      const status = ORDER_STATUS[order.status] || { label: order.status || "N/A", color: "badge-blue" };
-                      const isSelected = selected?.id === order.id;
-                      return (
-                        <tr key={order.id}
-                          onClick={() => setSelected(isSelected ? null : order)}
-                          className={`cursor-pointer transition-colors ${isSelected ? "bg-brand-blue-light" : "hover:bg-surface-soft"}`}>
-                          <td className="px-4 py-3 font-bold text-brand-blue">#{String(order.id).padStart(6, "0")}</td>
-                          <td className="px-4 py-3 text-text-primary">{order.receiverName || order.user?.fullName || "—"}</td>
-                          <td className="px-4 py-3 text-text-muted text-xs">{formatDate(order.createdAt)}</td>
-                          <td className="px-4 py-3 text-right font-semibold">{formatVND(getOrderTotal(order))}</td>
-                          <td className="px-4 py-3 text-center"><span className={status.color}>{status.label}</span></td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center justify-center gap-1">
-                              <button onClick={(e) => { e.stopPropagation(); setSelected(order); }}
-                                className="p-1.5 rounded-lg text-brand-blue hover:bg-brand-blue-light transition-all" title="Chi tiết">
-                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>visibility</span>
-                              </button>
-                              <button onClick={(e) => { e.stopPropagation(); handleDelete(order); }}
-                                className="p-1.5 rounded-lg text-danger hover:bg-red-50 transition-all" title="Xóa">
-                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
+                      ? (
+                        <tr><td colSpan={6} className="px-4 py-16 text-center text-text-muted">
+                          <span className="material-symbols-outlined" style={{ fontSize: 48 }}>receipt_long</span>
+                          <p className="mt-2 font-semibold">Không có đơn hàng nào</p>
+                        </td></tr>
+                      )
+                      : orders.map((order) => {
+                        const status = ORDER_STATUS[order.status] || { label: order.status || "N/A", color: "badge-blue" };
+                        const isSelected = selected?.id === order.id;
+                        return (
+                          <tr key={order.id}
+                            onClick={() => setSelected(isSelected ? null : order)}
+                            className={`cursor-pointer transition-colors ${isSelected ? "bg-brand-blue-light" : "hover:bg-surface-soft"}`}>
+                            <td className="px-4 py-3 font-bold text-brand-blue">#{String(order.id).padStart(6, "0")}</td>
+                            <td className="px-4 py-3 text-text-primary">{order.receiverName || order.user?.fullName || "—"}</td>
+                            <td className="px-4 py-3 text-text-muted text-xs">{formatDate(order.createdAt)}</td>
+                            <td className="px-4 py-3 text-right font-semibold">{formatVND(getOrderTotal(order))}</td>
+                            <td className="px-4 py-3 text-center"><span className={status.color}>{status.label}</span></td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center justify-center gap-1">
+                                <button onClick={(e) => { e.stopPropagation(); setSelected(order); }}
+                                  className="p-1.5 rounded-lg text-brand-blue hover:bg-brand-blue-light transition-all" title="Chi tiết">
+                                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>visibility</span>
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); handleDelete(order); }}
+                                  className="p-1.5 rounded-lg text-danger hover:bg-red-50 transition-all" title="Xóa">
+                                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
                   }
                 </tbody>
               </table>

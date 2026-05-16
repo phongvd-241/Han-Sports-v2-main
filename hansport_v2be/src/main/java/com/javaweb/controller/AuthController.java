@@ -1,11 +1,14 @@
 package com.javaweb.controller;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.javaweb.domain.User;
+import com.javaweb.domain.request.ReqGoogleLoginDTO;
 import com.javaweb.domain.request.ReqLoginDTO;
 import com.javaweb.domain.request.ReqRegisterDTO;
 import com.javaweb.domain.response.ResLoginDTO;
 import com.javaweb.domain.response.role.ResRoleDTO;
 import com.javaweb.domain.response.user.ResCreateUserDTO;
+import com.javaweb.service.GoogleTokenVerifierService;
 import com.javaweb.service.UserService;
 import com.javaweb.util.SecurityUtil;
 import com.javaweb.util.annotation.ApiMessage;
@@ -29,6 +32,7 @@ public class AuthController {
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
     private final SecurityUtil securityUtil;
     private final UserService userService;
+    private final GoogleTokenVerifierService  googleTokenVerifierService;
 
     @Value("${hansport.jwt.refreshtoken-validity-in-seconds}")
     private Long refreshTokenExpiration;
@@ -36,10 +40,11 @@ public class AuthController {
     @Value("${app.cookie.secure:false}")
     private boolean secureCookie;
 
-    public AuthController(AuthenticationManagerBuilder authenticationManagerBuilder, SecurityUtil securityUtil, UserService userService) {
+    public AuthController(AuthenticationManagerBuilder authenticationManagerBuilder, SecurityUtil securityUtil, UserService userService, GoogleTokenVerifierService googleTokenVerifierService) {
         this.authenticationManagerBuilder = authenticationManagerBuilder;
         this.securityUtil = securityUtil;
         this.userService = userService;
+        this.googleTokenVerifierService = googleTokenVerifierService;
     }
 
     @PostMapping("/auth/login")
@@ -79,6 +84,54 @@ public class AuthController {
 
         //update token
         this.userService.updateUserToken(refresh_token, loginDTO.getUsername());
+
+        // set cookies
+        ResponseCookie resCookies = ResponseCookie
+                .from("refresh_token", refresh_token)
+                .httpOnly(true)
+                .secure(secureCookie)
+                .path("/")
+                .sameSite("Lax")
+                .maxAge(refreshTokenExpiration)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, resCookies.toString())
+                .body(resLoginDTO);
+    }
+
+    @PostMapping("/auth/google")
+    public ResponseEntity<ResLoginDTO> login(@RequestBody ReqGoogleLoginDTO reqGoogleLoginDTO)throws Exception {
+
+        GoogleIdToken.Payload payload =
+                googleTokenVerifierService
+                        .verify(reqGoogleLoginDTO.getIdToken());
+
+        String email = payload.getEmail();
+
+        String name = (String) payload.get("name");
+
+        this.userService.googleUser(email, name);
+
+        ResLoginDTO resLoginDTO = new ResLoginDTO();
+
+        ResLoginDTO.UserLogin user =
+                new ResLoginDTO.UserLogin();
+
+        user.setEmail(email);
+        user.setName(name);
+
+        resLoginDTO.setUser(user);
+
+        String accessToken = securityUtil.createAccessToken(email, resLoginDTO);
+
+        resLoginDTO.setAccessToken(accessToken);
+
+        // create refresh token
+        String refresh_token = this.securityUtil.createRefreshToken(resLoginDTO.getUser().getName(), resLoginDTO);
+
+        //update token
+        this.userService.updateUserToken(refresh_token, resLoginDTO.getUser().getEmail());
 
         // set cookies
         ResponseCookie resCookies = ResponseCookie

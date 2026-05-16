@@ -4,6 +4,7 @@ import com.javaweb.domain.*;
 import com.javaweb.domain.request.ReqOrderDTO;
 import com.javaweb.domain.request.ReqUpdateOrderStatusDTO;
 import com.javaweb.domain.response.ResultPaginationDTO;
+import com.javaweb.domain.response.email.OrderEmailDTO;
 import com.javaweb.domain.response.order.ResOrderDTO;
 import com.javaweb.domain.response.orderdetail.ResOrderDetailDTO;
 import com.javaweb.repository.*;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,16 +29,18 @@ public class OrderService {
     private final CartDetailRepository cartDetailRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final ProductRepository productRepository;
+    private final EmailService emailService;
 
-    public OrderService(OrderRepository orderRepository, UserRepository userRepository, CartRepository cartRepository, 
-                        CartDetailRepository cartDetailRepository, OrderDetailRepository orderDetailRepository, 
-                        ProductRepository productRepository) {
+    public OrderService(OrderRepository orderRepository, UserRepository userRepository, CartRepository cartRepository,
+                        CartDetailRepository cartDetailRepository, OrderDetailRepository orderDetailRepository,
+                        ProductRepository productRepository, EmailService emailService) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.cartRepository = cartRepository;
         this.cartDetailRepository = cartDetailRepository;
         this.orderDetailRepository = orderDetailRepository;
         this.productRepository = productRepository;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -144,7 +148,7 @@ public class OrderService {
         Order order = this.orderRepository.findById(req.getId())
                 .orElseThrow(() -> new IdInvalidException("Đơn hàng không tồn tại"));
         String status = req.getStatus().trim().toUpperCase();
-        List<String> allowedStatus = Arrays.asList("PENDING", "CONFIRMED", "SHIPPING", "COMPLETED", "CANCELLED");
+        List<String> allowedStatus = Arrays.asList("PENDING", "PROCESSING", "SHIPPING", "COMPLETED", "CANCELLED");
         if (!allowedStatus.contains(status)) {
             throw new IdInvalidException("Trạng thái đơn hàng không hợp lệ");
         }
@@ -153,21 +157,21 @@ public class OrderService {
     }
 
     @Transactional
-    public void deleteOrder(String email, long id) throws IdInvalidException {
-        User currentUser = this.userRepository.findByEmail(email)
-                .orElseThrow(() -> new IdInvalidException("Người dùng không tồn tại"));
+        public void deleteOrder(String email, long id) throws IdInvalidException {
+            User currentUser = this.userRepository.findByEmail(email)
+                    .orElseThrow(() -> new IdInvalidException("Người dùng không tồn tại"));
 
-        Order order;
-        boolean isAdmin = currentUser.getRole() != null && "ADMIN".equalsIgnoreCase(currentUser.getRole().getName());
-        if (isAdmin) {
-            order = this.orderRepository.findById(id)
-                    .orElseThrow(() -> new IdInvalidException("Đơn hàng không tồn tại"));
-        } else {
-            order = this.orderRepository.findByUserAndId(currentUser, id)
-                    .orElseThrow(() -> new IdInvalidException("Đơn hàng không tồn tại"));
+            Order order;
+            boolean isAdmin = currentUser.getRole() != null && "ADMIN".equalsIgnoreCase(currentUser.getRole().getName());
+            if (isAdmin) {
+                order = this.orderRepository.findById(id)
+                        .orElseThrow(() -> new IdInvalidException("Đơn hàng không tồn tại"));
+            } else {
+                order = this.orderRepository.findByUserAndId(currentUser, id)
+                        .orElseThrow(() -> new IdInvalidException("Đơn hàng không tồn tại"));
+            }
+            this.orderRepository.delete(order);
         }
-        this.orderRepository.delete(order);
-    }
 
     private ResultPaginationDTO convertToPaginationDTO(Page<Order> orders, Pageable pageable) {
         ResultPaginationDTO resultPaginationDTO = new ResultPaginationDTO();
@@ -184,6 +188,41 @@ public class OrderService {
                 .collect(Collectors.toList()));
 
         return resultPaginationDTO;
+    }
+
+    public void sendOrderEmail(long id){
+        Optional<Order> order = this.orderRepository.findById(id);
+        if(order.isPresent()){
+            Order currentOrder =  order.get();
+            OrderEmailDTO orderEmailDTO = new OrderEmailDTO();
+            orderEmailDTO.setCustomerName(currentOrder.getReceiverName());
+            orderEmailDTO.setAddress(currentOrder.getReceiverAddress());
+            orderEmailDTO.setPhone(currentOrder.getReceiverPhone());
+            orderEmailDTO.setTotalPrice(currentOrder.getTotalPrice());
+
+            List<OrderEmailDTO.OrderItemEmailDTO> orderItemEmailDTOList = new ArrayList<>();
+            List<OrderDetail> orderDetails = currentOrder.getOrderDetails();
+            if(orderDetails != null && orderDetails.size() > 0 ){
+                for (OrderDetail orderDetail : orderDetails) {
+                    OrderEmailDTO.OrderItemEmailDTO orderItemEmailDTO = new OrderEmailDTO.OrderItemEmailDTO();
+                    orderItemEmailDTO.setProductName(orderDetail.getProduct().getName());
+                    orderItemEmailDTO.setQuantity(orderDetail.getQuantity());
+                    orderItemEmailDTO.setPrice(orderDetail.getPrice());
+                    orderItemEmailDTOList.add(orderItemEmailDTO);
+                }
+            }
+
+            orderEmailDTO.setItems(orderItemEmailDTOList);
+
+            this.emailService.sendEmailFromTemplateSync(
+                    currentOrder.getUser().getEmail(),
+                    "Xác nhận đơn hàng",
+                    "order",
+                    orderEmailDTO
+            );
+
+        }
+
     }
 
     public ResOrderDTO convertToResOrderDTO(Order order) {

@@ -6,4 +6,5 @@ export const orderApi = {
   getAllOrders: (params) => axiosInstance.get("/api/v1/orders", { params }),
   updateOrder: (data) => axiosInstance.put("/api/v1/orders", data),
   deleteOrder: (id) => axiosInstance.delete(`/api/v1/orders/${id}`),
+  sendOrderEmail: (id) => axiosInstance.get(`/api/v1/email/${id}`),
 };

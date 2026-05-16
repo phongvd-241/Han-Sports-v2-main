@@ -66,6 +66,19 @@ public class UserService {
     }
 
     @Transactional
+    public void googleUser(String email, String name){
+        if(this.userRepository.existsByEmail(email)){
+            return;
+        }
+        User user = new User();
+        user.setEmail(email);
+        user.setFullName(name);
+        user.setRole(this.roleRepository.findByName("USER").isPresent()?this.roleRepository.findByName("USER").get():null);
+        this.userRepository.save(user);
+
+    }
+
+    @Transactional
     public ResCreateUserDTO register(ReqRegisterDTO req) throws IdInvalidException {
         ReqUserCreateDTO createDTO = new ReqUserCreateDTO();
         createDTO.setEmail(req.getEmail());
