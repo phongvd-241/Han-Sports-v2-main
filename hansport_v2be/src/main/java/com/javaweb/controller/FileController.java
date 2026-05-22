@@ -84,7 +84,7 @@ public class FileController {
         InputStreamResource resource = this.fileService.getResource(fileName, folder);
 
         MediaType mediaType = org.springframework.http.MediaTypeFactory
-                .getMediaType(resource)
+                .getMediaType(fileName)
                 .orElse(MediaType.APPLICATION_OCTET_STREAM);
 
         return ResponseEntity.ok()

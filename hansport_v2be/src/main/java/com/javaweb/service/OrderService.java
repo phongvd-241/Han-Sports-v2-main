@@ -265,7 +265,13 @@ public class OrderService {
         ResOrderDetailDTO.ProductOrderDetail productCartDetail = new ResOrderDetailDTO.ProductOrderDetail();
         productCartDetail.setId(orderDetail.getProduct().getId());
         productCartDetail.setName(orderDetail.getProduct().getName());
-        productCartDetail.setImage(orderDetail.getProduct().getImages().get(0).getImageUrl());
+        
+        List<com.javaweb.domain.ProductImage> images = orderDetail.getProduct().getImages();
+        if (images != null && !images.isEmpty()) {
+            productCartDetail.setImage(images.get(0).getImageUrl());
+        } else {
+            productCartDetail.setImage(null);
+        }
 
         resOrderDetailDTO.setProduct(productCartDetail);
 

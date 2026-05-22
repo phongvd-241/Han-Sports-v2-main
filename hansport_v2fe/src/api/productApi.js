@@ -18,11 +18,9 @@ export const productApi = {
 
   uploadFile: (file) => {
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("files", file);
     formData.append("folder", "product");
-    return axiosInstance.post("/api/v1/files", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    return axiosInstance.post("/api/v1/files", formData);
   },
 
   uploadFiles: (files) => {
@@ -32,9 +30,7 @@ export const productApi = {
 
     formData.append("folder", "product");
 
-    return axiosInstance.post("/api/v1/files", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    return axiosInstance.post("/api/v1/files", formData);
   },
 
   getFile: (fileName) =>

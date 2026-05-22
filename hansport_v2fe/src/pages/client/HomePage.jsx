@@ -313,7 +313,17 @@ export default function HomePage() {
                 products.filter(p => activeTab === "all" || p.category === activeTab).map((p) => (
                   <div key={p.id} className="min-w-[180px] md:min-w-[240px] max-w-[240px] bg-white rounded-2xl p-3 md:p-4 hover:shadow-[0_20px_50px_rgba(29,78,216,0.15)] hover:-translate-y-2 transition-all duration-500 group/card flex flex-col border border-surface-border hover:border-brand-blue/30 relative">
                     <div className="relative aspect-square mb-4 overflow-hidden rounded-xl bg-surface-soft">
-                      <img src={getImageUrl(getFirstImage(p))} alt={p.name} className="w-full h-full object-contain transform group-hover/card:scale-110 transition-transform duration-700 ease-out" />
+                      {getFirstImage(p) ? (
+                        <img
+                          src={getImageUrl(getFirstImage(p))}
+                          alt={p.name}
+                          className="w-full h-full object-contain transform group-hover/card:scale-110 transition-transform duration-700 ease-out"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-text-muted">
+                          <span className="material-symbols-outlined" style={{ fontSize: 48 }}>image_not_supported</span>
+                        </div>
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-brand-blue/5 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
                     </div>
                     <h3 className="text-sm font-bold text-text-primary mb-2 line-clamp-2 flex-grow h-10 group-hover:text-brand-blue transition-colors">
