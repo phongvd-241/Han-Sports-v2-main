@@ -16,27 +16,42 @@ export const productApi = {
   remove: (id) =>
     axiosInstance.delete(`/api/v1/products/${id}`),
 
-  uploadFile: (file) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("folder", "product");
-    return axiosInstance.post("/api/v1/files", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-  },
-
-  uploadFiles: (files) => {
+  uploadFile: (file, folder = "product") => {
     const formData = new FormData();
 
-    files.forEach((f) => formData.append("files", f));
+    formData.append("files", file);
 
-    formData.append("folder", "product");
-
-    return axiosInstance.post("/api/v1/files", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    return axiosInstance.post(
+      `/api/v1/files?folder=${encodeURIComponent(folder)}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
   },
 
-  getFile: (fileName) =>
-    axiosInstance.get("/api/v1/files", { params: { fileName } }),
+  uploadFiles: (files, folder = "product") => {
+    const formData = new FormData();
+
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
+
+    return axiosInstance.post(
+      `/api/v1/files?folder=${encodeURIComponent(folder)}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+  },
+
+  getFile: (fileName, folder = "product") =>
+    axiosInstance.get(
+      `/api/v1/files?folder=${encodeURIComponent(folder)}&fileName=${encodeURIComponent(fileName)}`
+    ),
 };

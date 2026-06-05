@@ -83,10 +83,14 @@ public class FileController {
 
         InputStreamResource resource = this.fileService.getResource(fileName, folder);
 
+        MediaType mediaType = org.springframework.http.MediaTypeFactory
+                .getMediaType(fileName)
+                .orElse(MediaType.APPLICATION_OCTET_STREAM);
+
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")
                 .contentLength(fileLength)
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(mediaType)
                 .body(resource);
     }
 }

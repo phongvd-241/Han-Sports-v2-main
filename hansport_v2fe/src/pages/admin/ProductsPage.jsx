@@ -110,28 +110,65 @@ export default function ProductsPage() {
     setForm((f) => ({ ...f, image: img }));
   };
 
-  const handleUpload = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    setUploading(true);
-    try {
-      // use new API to upload multiple files
-      const res = await productApi.uploadFiles(files);
-      // backend may return file names under various keys; handle common cases
-      const uploaded = res.data?.data?.fileName || res.data?.fileName || res.data?.data?.fileNames || res.data?.fileNames || [];
-      const uploadedList = Array.isArray(uploaded) ? uploaded : (uploaded ? [uploaded] : []);
-      if (uploadedList.length > 0) {
-        setForm((f) => ({ ...f, images: [...(f.images || []), ...uploadedList], image: f.image || uploadedList[0] }));
-        showToast("Upload ảnh thành công!");
-      } else {
-        showToast("Không nhận được tên file trả về", "error");
-      }
-      if (fileRef.current) fileRef.current.value = null;
-    } catch (err) {
-      console.error(err);
-      showToast(err.response?.data?.message || err.message || "Upload ảnh thất bại!", "error");
-    } finally { setUploading(false); }
-  };
+const handleUpload = async (e) => {
+  console.log("HANDLE UPLOAD ĐÃ CHẠY");
+  console.log("FILES:", e.target.files);
+
+  const files = Array.from(e.target.files || []);
+
+  if (!files.length) {
+    console.log("KHÔNG CÓ FILE NÀO ĐƯỢC CHỌN");
+    return;
+  }
+
+  setUploading(true);
+
+  try {
+    console.log("BẮT ĐẦU GỌI API UPLOAD");
+
+    const res = await productApi.uploadFiles(files, "product");
+
+    console.log("UPLOAD RESPONSE:", res.data);
+
+    const uploaded =
+      res.data?.data?.fileName ||
+      res.data?.fileName ||
+      res.data?.data?.fileNames ||
+      res.data?.fileNames ||
+      res.data?.data ||
+      [];
+
+    const uploadedList = Array.isArray(uploaded)
+      ? uploaded
+      : uploaded
+        ? [uploaded]
+        : [];
+
+    if (uploadedList.length > 0) {
+      setForm((f) => ({
+        ...f,
+        images: [...(f.images || []), ...uploadedList],
+        image: f.image || uploadedList[0],
+      }));
+
+      showToast("Upload ảnh thành công!");
+    } else {
+      showToast("Không nhận được tên file trả về", "error");
+    }
+
+    if (fileRef.current) fileRef.current.value = null;
+  } catch (err) {
+    console.error("UPLOAD ERROR:", err);
+    showToast(
+      err.response?.data?.message ||
+      err.message ||
+      "Upload ảnh thất bại!",
+      "error"
+    );
+  } finally {
+    setUploading(false);
+  }
+};
 
   const handleSave = async (e) => {
     e.preventDefault();

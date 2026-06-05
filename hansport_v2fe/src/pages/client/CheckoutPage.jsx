@@ -33,24 +33,14 @@ export default function CheckoutPage() {
     setSubmitting(true);
     try {
       const orderData = { ...form, cartDetailIds: selectedIds };
-      if (form.paymentMethod === "VNPAY") {
-        // Fake VNPay redirect
-        alert("Chuyển hướng đến cổng thanh toán VNPay...");
-        setTimeout(() => {
-          removeSelectedItems();
-          setSuccess(true);
-        }, 1500);
-      } else {
-        await orderApi.createOrder(orderData);
-        removeSelectedItems();
-        setSuccess(true);
-      }
+      // Only COD supported now: create order directly
+      await orderApi.createOrder(orderData);
+      removeSelectedItems();
+      setSuccess(true);
     } catch (err) {
       alert(err.response?.data?.message || "Đặt hàng thất bại, vui lòng thử lại!");
     } finally {
-      if (form.paymentMethod !== "VNPAY") {
-        setSubmitting(false);
-      }
+      setSubmitting(false);
     }
   };
 
@@ -139,16 +129,7 @@ export default function CheckoutPage() {
                     </div>
                   </label>
 
-                  <label className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${form.paymentMethod === 'VNPAY' ? 'border-brand-blue bg-brand-blue-light' : 'border-surface-border bg-white hover:border-brand-blue/50'}`}>
-                    <input type="radio" name="paymentMethod" value="VNPAY" checked={form.paymentMethod === "VNPAY"} onChange={handleChange} className="accent-brand-blue" />
-                    <div className="w-8 h-8 rounded bg-white flex items-center justify-center p-0.5 border border-surface-border">
-                      <span className="font-extrabold text-[#005BAA] text-[10px] tracking-tighter">VNPAY</span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-text-primary">Thanh toán qua VNPay</p>
-                      <p className="text-xs text-text-muted">Thẻ ATM, Visa, MasterCard, QR Code</p>
-                    </div>
-                  </label>
+                  {/* VNPay option removed - only COD supported */}
                 </div>
               </div>
             </div>

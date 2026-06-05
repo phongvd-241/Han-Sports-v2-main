@@ -158,7 +158,13 @@ public class CartService {
         productCartDetail.setId(cd.getProduct().getId());
         productCartDetail.setName(cd.getProduct().getName());
         productCartDetail.setPrice(cd.getProduct().getPrice());
-        productCartDetail.setImage(cd.getProduct().getImages().get(0).getImageUrl());
+        
+        List<com.javaweb.domain.ProductImage> images = cd.getProduct().getImages();
+        if (images != null && !images.isEmpty()) {
+            productCartDetail.setImage(images.get(0).getImageUrl());
+        } else {
+            productCartDetail.setImage(null);
+        }
 
         resCartDetailDTO.setProduct(productCartDetail);
         resCartDetailDTO.setCreatedAt(cd.getCreatedAt());

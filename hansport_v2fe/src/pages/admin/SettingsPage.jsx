@@ -49,7 +49,9 @@ export default function SettingsPage() {
     const t = toast.loading("Đang tải ảnh lên...");
     try {
       const res = await productApi.uploadFile(file);
-      handleSlideChange(index, "image", res.data?.data?.fileName);
+      const uploaded = res.data?.data?.fileName || res.data?.fileName;
+      const fileName = Array.isArray(uploaded) ? uploaded[0] : (uploaded || "");
+      handleSlideChange(index, "image", fileName);
       toast.success("Tải ảnh lên thành công!", { id: t });
     } catch (err) {
       toast.error("Tải ảnh thất bại!", { id: t });

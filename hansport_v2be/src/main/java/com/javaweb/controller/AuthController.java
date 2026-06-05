@@ -108,30 +108,33 @@ public class AuthController {
                         .verify(reqGoogleLoginDTO.getIdToken());
 
         String email = payload.getEmail();
-
         String name = (String) payload.get("name");
 
         this.userService.googleUser(email, name);
 
+        User currentUserDB = this.userService.getUserByUsername(email);
+        if (currentUserDB == null) {
+            throw new org.springframework.security.core.userdetails.UsernameNotFoundException("Email không hợp lệ");
+        }
+
+        ResRoleDTO role = this.convertToRoleDTO(currentUserDB);
+        ResLoginDTO.UserLogin user = new ResLoginDTO.UserLogin(
+                currentUserDB.getId(),
+                currentUserDB.getEmail(),
+                currentUserDB.getFullName(),
+                role);
+
         ResLoginDTO resLoginDTO = new ResLoginDTO();
-
-        ResLoginDTO.UserLogin user =
-                new ResLoginDTO.UserLogin();
-
-        user.setEmail(email);
-        user.setName(name);
-
         resLoginDTO.setUser(user);
 
         String accessToken = securityUtil.createAccessToken(email, resLoginDTO);
-
         resLoginDTO.setAccessToken(accessToken);
 
         // create refresh token
-        String refresh_token = this.securityUtil.createRefreshToken(resLoginDTO.getUser().getName(), resLoginDTO);
+        String refresh_token = this.securityUtil.createRefreshToken(email, resLoginDTO);
 
         //update token
-        this.userService.updateUserToken(refresh_token, resLoginDTO.getUser().getEmail());
+        this.userService.updateUserToken(refresh_token, email);
 
         // set cookies
         ResponseCookie resCookies = ResponseCookie
