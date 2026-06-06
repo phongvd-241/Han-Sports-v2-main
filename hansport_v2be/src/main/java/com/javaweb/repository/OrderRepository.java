@@ -8,10 +8,20 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecificationExecutor<Order> {
     Optional<Order> findByUserAndId(User user, Long id);
     Page<Order> findByUser(User user, Pageable pageable);
+
+    List<Order> findTop5ByOrderByCreatedAtDesc();
+
+    @org.springframework.data.jpa.repository.Query("select coalesce(sum(o.totalPrice), 0) from Order o")
+    long sumTotalPrice();
+
+    @org.springframework.data.jpa.repository.Query("select coalesce(sum(o.totalPrice), 0) from Order o where o.createdAt >= :createdAt")
+    long sumTotalPriceSince(Instant createdAt);
 }

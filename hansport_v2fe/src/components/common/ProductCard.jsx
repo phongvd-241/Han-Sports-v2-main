@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { getImageUrl, formatVND, getFirstImage } from "../../utils/constants";
 
 export default function ProductCard({ product, discountPercent, badge, onAddCart }) {
-  const { id, name, price, image, brand, sold, quantity } = product;
+  const { id, name, price, brand, sold, quantity } = product;
   const originalPrice = discountPercent
     ? Math.round(price / (1 - discountPercent / 100))
     : null;

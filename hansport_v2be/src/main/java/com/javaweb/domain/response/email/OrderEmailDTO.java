@@ -13,7 +13,7 @@ public class OrderEmailDTO {
     private String customerName;
     private String address;
     private String phone;
-    private double totalPrice;
+    private long totalPrice;
     private List<OrderItemEmailDTO> items;
 
     @Getter
@@ -23,7 +23,7 @@ public class OrderEmailDTO {
     public static class OrderItemEmailDTO {
         private String productName;
         private long quantity;
-        private double price;
+        private long price;
 
     }
 }

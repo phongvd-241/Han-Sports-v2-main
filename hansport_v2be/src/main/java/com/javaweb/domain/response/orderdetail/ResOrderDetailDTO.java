@@ -19,7 +19,7 @@ import java.time.Instant;
 public class ResOrderDetailDTO {
     private long id;
     private long quantity;
-    private double price;
+    private long price;
     private ProductOrderDetail product;
 
     private Instant createdAt;

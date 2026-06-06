@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { cartApi } from "../../api/cartApi";
 import { useCartStore } from "../../store/useCartStore";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -24,7 +25,7 @@ export default function CartPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [user]);
+  }, [navigate, setCart, user]);
 
   const handleRemove = async (itemId) => {
     setRemoving(itemId);
@@ -42,11 +43,7 @@ export default function CartPage() {
 
     setUpdating(item.id);
     try {
-      // Remove old + add new with updated quantity
-      await cartApi.removeFromCart(item.id);
-      const addRes = await cartApi.addToCart(item.product?.id || item.productId, newQty);
-      // Reload cart to get updated IDs
-      const cartRes = await cartApi.getCart();
+      const cartRes = await cartApi.updateQuantity(item.id, newQty);
       const items = cartRes.data?.data?.cartDetails || cartRes.data?.data || [];
       setCart(items);
     } catch (e) { console.error(e); }
@@ -243,7 +240,7 @@ export default function CartPage() {
               <button
                 onClick={() => {
                   if (selectedIds.length === 0) {
-                    alert("Vui lòng chọn ít nhất một sản phẩm để thanh toán!");
+                    toast.error("Vui lòng chọn ít nhất một sản phẩm để thanh toán.");
                     return;
                   }
                   navigate("/checkout");

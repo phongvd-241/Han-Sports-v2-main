@@ -3,6 +3,8 @@ package com.javaweb.controller;
 import com.javaweb.domain.request.ReqSettingUpdateDTO;
 import com.javaweb.service.AppSettingService;
 import com.javaweb.util.annotation.ApiMessage;
+import com.javaweb.util.error.IdInvalidException;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -29,7 +31,8 @@ public class AppSettingController {
     @PutMapping("/settings/bulk")
     @PreAuthorize("hasRole('ADMIN')")
     @ApiMessage("Update bulk settings")
-    public ResponseEntity<Void> updateBulkSettings(@RequestBody List<ReqSettingUpdateDTO> updates) {
+    public ResponseEntity<Void> updateBulkSettings(@RequestBody @Valid List<@Valid ReqSettingUpdateDTO> updates)
+            throws IdInvalidException {
         appSettingService.updateBulkSettings(updates);
         return ResponseEntity.ok().build();
     }

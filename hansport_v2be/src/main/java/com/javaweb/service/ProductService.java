@@ -10,24 +10,36 @@ import com.javaweb.domain.response.product.ResUpdateProductDTO;
 import com.javaweb.repository.ProductImageRepository;
 import com.javaweb.repository.ProductRepository;
 import com.javaweb.util.error.IdInvalidException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
+    private static final Logger log = LoggerFactory.getLogger(ProductService.class);
+
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
-    public ProductService(ProductRepository productRepository, ProductImageRepository productImageRepository) {
+    private final FileService fileService;
+
+    public ProductService(ProductRepository productRepository,
+                          ProductImageRepository productImageRepository,
+                          FileService fileService) {
         this.productRepository = productRepository;
         this.productImageRepository = productImageRepository;
+        this.fileService = fileService;
     }
 
     @Transactional
@@ -54,7 +66,7 @@ public class ProductService {
 
         this.applyProductRequest(currentProduct, product);
         this.productRepository.save(currentProduct);
-        this.addImage(product.getImages(), currentProduct);
+        this.replaceImages(product.getImages(), currentProduct);
         return convertToResUpdateProductDTO(currentProduct);
     }
     public ResProductDTO fetchProductById(long id) throws IdInvalidException {
@@ -65,13 +77,14 @@ public class ProductService {
 
     @Transactional
     public void deleteProductById(long id) {
-        Product currentProduct = this.productRepository.findById(id).isPresent()?
-                this.productRepository.findById(id).get() : null;
-        List<ProductImage> productImages = currentProduct.getImages();
+        Product currentProduct = this.productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+        List<ProductImage> productImages = this.productImageRepository.findByProductId(id);
         for (ProductImage productImage : productImages) {
+            this.deleteProductImageFileIfUnused(productImage.getImageUrl());
             this.productImageRepository.delete(productImage);
         }
-        this.productRepository.deleteById(id);
+        this.productRepository.delete(currentProduct);
     }
 
     public ResultPaginationDTO fetchAllProducts(Specification<Product> spec, Pageable pageable){
@@ -117,7 +130,7 @@ public class ProductService {
 
     public List<ProductImage> addImage(List<String> images, Product product){
         List<ProductImage> imageList = new ArrayList<>();
-        for(String image : images){
+        for(String image : normalizeImages(images)){
             ProductImage productImage = new ProductImage();
             productImage.setImageUrl(image);
             productImage.setProduct(product);
@@ -125,6 +138,62 @@ public class ProductService {
             imageList.add(productImage);
         }
         return imageList;   }
+
+    private void replaceImages(List<String> requestedImages, Product product) {
+        if (requestedImages == null) {
+            return;
+        }
+
+        Set<String> requestedImageSet = new LinkedHashSet<>(normalizeImages(requestedImages));
+        List<ProductImage> managedImages = product.getImages();
+        if (managedImages == null) {
+            managedImages = new ArrayList<>();
+            product.setImages(managedImages);
+        }
+
+        List<ProductImage> existingImages = new ArrayList<>(managedImages);
+        Set<String> existingImageUrls = existingImages.stream()
+                .map(ProductImage::getImageUrl)
+                .collect(Collectors.toSet());
+
+        for (ProductImage existingImage : existingImages) {
+            if (!requestedImageSet.contains(existingImage.getImageUrl())) {
+                this.deleteProductImageFileIfUnused(existingImage.getImageUrl());
+                managedImages.remove(existingImage);
+            }
+        }
+
+        for (String requestedImage : requestedImageSet) {
+            if (!existingImageUrls.contains(requestedImage)) {
+                ProductImage productImage = new ProductImage();
+                productImage.setImageUrl(requestedImage);
+                productImage.setProduct(product);
+                managedImages.add(this.productImageRepository.save(productImage));
+            }
+        }
+    }
+
+    private List<String> normalizeImages(List<String> images) {
+        if (images == null) {
+            return List.of();
+        }
+        return images.stream()
+                .filter(image -> image != null && !image.isBlank())
+                .map(String::trim)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    private void deleteProductImageFileIfUnused(String imageUrl) {
+        if (imageUrl == null || this.productImageRepository.countByImageUrl(imageUrl) > 1) {
+            return;
+        }
+        try {
+            this.fileService.deleteIfExists(imageUrl, "product");
+        } catch (IOException | IllegalArgumentException e) {
+            log.warn("Could not delete product image file {}", imageUrl, e);
+        }
+    }
 
     public ResCreateProductDTO convertToResCreateProductDTO(Product product) {
         ResCreateProductDTO resCreateProductDTO = new ResCreateProductDTO();

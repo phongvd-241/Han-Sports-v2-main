@@ -21,7 +21,7 @@ import java.util.List;
 @NoArgsConstructor
 public class ResOrderDTO {
     private long id;
-    private double totalPrice;
+    private long totalPrice;
     private String receiverName;
     private String receiverAddress;
     private String receiverPhone;

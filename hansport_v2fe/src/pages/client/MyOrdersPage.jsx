@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { orderApi } from "../../api/orderApi";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { useAuthStore } from "../../store/useAuthStore";
 import { getImageUrl, formatVND, formatDate, ORDER_STATUS, getFirstImage } from "../../utils/constants";
 
@@ -11,8 +13,10 @@ export default function MyOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
   const [activeFilter, setActiveFilter] = useState("ALL");
+  const [cancelTarget, setCancelTarget] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
 
-  const fetchOrders = () => {
+  const fetchOrders = useCallback(() => {
     setLoading(true);
     orderApi.getMyOrders()
       .then((res) => {
@@ -21,20 +25,29 @@ export default function MyOrdersPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  };
+  }, []);
 
   useEffect(() => {
-    if (!user) { navigate("/login"); return; }
+    if (!user) {
+      navigate("/login");
+      return;
+    }
     fetchOrders();
-  }, [user]);
+  }, [fetchOrders, navigate, user]);
 
-  const handleCancelOrder = async (orderId) => {
-    if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) return;
+  const handleCancelOrder = async () => {
+    if (!cancelTarget) return;
+    setCancelling(true);
     try {
-      await orderApi.deleteOrder(orderId);
+      await orderApi.deleteOrder(cancelTarget.id);
+      toast.success("Đã hủy đơn hàng.");
+      setCancelTarget(null);
       fetchOrders();
-    } catch (e) {
-      alert("Hủy đơn hàng thất bại, vui lòng thử lại!");
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Hủy đơn hàng thất bại, vui lòng thử lại.");
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -49,6 +62,7 @@ export default function MyOrdersPage() {
     { key: "ALL", label: "Tất cả" },
     { key: "PENDING", label: "Chờ xác nhận" },
     { key: "CONFIRMED", label: "Đã xác nhận" },
+    { key: "PROCESSING", label: "Đang xử lý" },
     { key: "SHIPPING", label: "Đang giao" },
     { key: "COMPLETED", label: "Hoàn thành" },
     { key: "CANCELLED", label: "Đã hủy" },
@@ -56,7 +70,7 @@ export default function MyOrdersPage() {
 
   const filteredOrders = activeFilter === "ALL"
     ? orders
-    : orders.filter(o => o.status === activeFilter);
+    : orders.filter((order) => order.status === activeFilter);
 
   return (
     <div className="min-h-screen bg-surface-soft py-8 md:py-12">
@@ -72,18 +86,17 @@ export default function MyOrdersPage() {
           </Link>
         </div>
 
-        {/* Status Filters */}
         <div className="flex overflow-x-auto gap-2 mb-8 pb-2 hide-scrollbar">
-          {filters.map(f => (
+          {filters.map((filter) => (
             <button
-              key={f.key}
-              onClick={() => setActiveFilter(f.key)}
-              className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap border-2 ${activeFilter === f.key
-                  ? "bg-brand-blue border-brand-blue text-white shadow-lg shadow-brand-blue/20"
-                  : "bg-white border-surface-border text-text-muted hover:border-brand-blue/50"
-                }`}
+              key={filter.key}
+              onClick={() => setActiveFilter(filter.key)}
+              className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap border-2 ${activeFilter === filter.key
+                ? "bg-brand-blue border-brand-blue text-white shadow-lg shadow-brand-blue/20"
+                : "bg-white border-surface-border text-text-muted hover:border-brand-blue/50"
+              }`}
             >
-              {f.label}
+              {filter.label}
             </button>
           ))}
         </div>
@@ -94,7 +107,9 @@ export default function MyOrdersPage() {
               <span className="material-symbols-outlined text-brand-blue" style={{ fontSize: 40 }}>shopping_bag</span>
             </div>
             <h3 className="text-title font-bold text-text-primary mb-2">Không tìm thấy đơn hàng</h3>
-            <p className="text-text-muted mb-8 max-w-sm mx-auto">Bạn chưa có đơn hàng nào ở trạng thái này. Hãy khám phá ngay các sản phẩm mới nhất!</p>
+            <p className="text-text-muted mb-8 max-w-sm mx-auto">
+              Bạn chưa có đơn hàng nào ở trạng thái này. Hãy khám phá ngay các sản phẩm mới nhất!
+            </p>
             <Link to="/shop" className="btn-primary py-3.5 px-10 rounded-xl">Khám phá sản phẩm</Link>
           </div>
         ) : (
@@ -103,11 +118,10 @@ export default function MyOrdersPage() {
               const status = ORDER_STATUS[order.status] || { label: order.status, color: "badge-blue" };
               const isExpanded = expanded === order.id;
               const items = order.orderDetails || [];
-              const orderTotal = order.totalPrice || items.reduce((s, i) => s + (i.price || 0) * (i.quantity || 0), 0);
+              const orderTotal = order.totalPrice || items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
 
               return (
                 <div key={order.id} className={`card overflow-hidden transition-all duration-500 border-2 ${isExpanded ? "border-brand-blue/30 shadow-xl" : "border-transparent"}`}>
-                  {/* Order Header */}
                   <div
                     className="px-6 py-5 flex items-center justify-between cursor-pointer hover:bg-surface-muted transition-colors"
                     onClick={() => setExpanded(isExpanded ? null : order.id)}
@@ -140,24 +154,22 @@ export default function MyOrdersPage() {
                     </div>
                   </div>
 
-                  {/* Order Details Container */}
                   <div className={`transition-all duration-500 ease-in-out ${isExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"} overflow-hidden`}>
                     <div className="border-t border-surface-border px-6 py-6 bg-surface-soft/50 backdrop-blur-sm">
-                      {/* Grid Layout for Details */}
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Items List */}
                         <div className="lg:col-span-2 space-y-3">
                           <p className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-4">Danh sách hàng</p>
-                          {items.map((item, idx) => {
-                            const p = item.product || {};
+                          {items.map((item, index) => {
+                            const product = item.product || {};
+                            const image = getFirstImage(product);
                             return (
-                              <div key={idx} className="flex gap-4 items-center p-3 bg-white rounded-2xl border border-surface-border hover:border-brand-blue/20 transition-all group/item">
+                              <div key={index} className="flex gap-4 items-center p-3 bg-white rounded-2xl border border-surface-border hover:border-brand-blue/20 transition-all group/item">
                                 <div className="w-16 h-16 rounded-xl bg-surface-muted flex-shrink-0 overflow-hidden">
-                                  {getFirstImage(p) && <img src={getImageUrl(getFirstImage(p))} alt={p.name} className="w-full h-full object-contain p-2 group-hover/item:scale-110 transition-transform" />}
+                                  {image && <img src={getImageUrl(image)} alt={product.name} className="w-full h-full object-contain p-2 group-hover/item:scale-110 transition-transform" />}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-bold text-text-primary line-clamp-1 group-hover/item:text-brand-blue transition-colors">
-                                    {p.name || item.productName}
+                                    {product.name || item.productName}
                                   </p>
                                   <div className="flex items-center gap-2 mt-1">
                                     <span className="text-xs text-text-muted">Số lượng: {item.quantity}</span>
@@ -171,7 +183,6 @@ export default function MyOrdersPage() {
                           })}
                         </div>
 
-                        {/* Summary & Shipping Info */}
                         <div className="space-y-4">
                           <div className="p-5 bg-white rounded-2xl border border-surface-border shadow-sm">
                             <p className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-4">Thông tin nhận hàng</p>
@@ -196,11 +207,13 @@ export default function MyOrdersPage() {
                             </div>
                           </div>
 
-                          {/* Action Buttons */}
                           <div className="flex flex-col gap-2">
                             {order.status === "PENDING" && (
                               <button
-                                onClick={(e) => { e.stopPropagation(); handleCancelOrder(order.id); }}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setCancelTarget(order);
+                                }}
                                 className="w-full py-3 bg-red-50 text-red-600 rounded-xl text-xs font-black hover:bg-red-100 transition-all flex items-center justify-center gap-2"
                               >
                                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>cancel</span>
@@ -222,6 +235,19 @@ export default function MyOrdersPage() {
           </div>
         )}
       </div>
+      {cancelTarget && (
+        <ConfirmDialog
+          title="Xác nhận hủy đơn hàng?"
+          description={`Bạn sắp hủy đơn hàng #${String(cancelTarget.id).padStart(6, "0")}. Hành động này không thể hoàn tác.`}
+          icon="cancel"
+          confirmLabel="Hủy đơn hàng"
+          loading={cancelling}
+          onCancel={() => {
+            if (!cancelling) setCancelTarget(null);
+          }}
+          onConfirm={handleCancelOrder}
+        />
+      )}
     </div>
   );
 }

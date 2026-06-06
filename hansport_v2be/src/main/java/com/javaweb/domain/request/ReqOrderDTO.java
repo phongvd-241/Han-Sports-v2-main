@@ -1,6 +1,7 @@
 package com.javaweb.domain.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,5 +19,6 @@ public class ReqOrderDTO {
     @NotBlank(message = "Địa chỉ không được để trống")
     String receiverAddress;
 
+    @NotEmpty(message = "Danh sach san pham thanh toan khong duoc de trong")
     List<Long> cartDetailIds;
 }

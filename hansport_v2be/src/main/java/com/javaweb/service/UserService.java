@@ -2,6 +2,8 @@ package com.javaweb.service;
 
 import com.javaweb.domain.Role;
 import com.javaweb.domain.User;
+import com.javaweb.domain.request.ReqAccountUpdateDTO;
+import com.javaweb.domain.request.ReqChangePasswordDTO;
 import com.javaweb.domain.request.ReqRegisterDTO;
 import com.javaweb.domain.request.ReqUserCreateDTO;
 import com.javaweb.domain.request.ReqUserUpdateDTO;
@@ -113,7 +115,12 @@ public class UserService {
     }
 
     @Transactional
-    public void deleteUserById(long id){
+    public void deleteUserById(long id, String currentUserEmail) throws IdInvalidException {
+        User currentUser = this.userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new IdInvalidException("Current user does not exist"));
+        if (currentUser.getId() == id) {
+            throw new IdInvalidException("Cannot delete the currently signed-in account");
+        }
         this.userRepository.deleteById(id);
     }
 
@@ -156,17 +163,53 @@ public class UserService {
         return null;
     }
 
-    public void updateUserToken(String token, String email)
+    @Transactional
+    public ResUserDTO updateAccountProfile(String email, ReqAccountUpdateDTO req) throws IdInvalidException {
+        User currentUser = this.userRepository.findByEmail(email)
+                .orElseThrow(() -> new IdInvalidException("User does not exist"));
+
+        if (req.getFullName() != null) {
+            currentUser.setFullName(req.getFullName().trim());
+        }
+        currentUser.setPhone(normalizeNullable(req.getPhone()));
+        currentUser.setAddress(normalizeNullable(req.getAddress()));
+
+        return this.convertToResUserDTO(this.userRepository.save(currentUser));
+    }
+
+    public void updateUserRefreshTokenHash(String refreshTokenHash, String email)
     {
         User currentUser = this.getUserByUsername(email);
         if(currentUser != null){
-            currentUser.setRefreshToken(token);
+            currentUser.setRefreshToken(refreshTokenHash);
             this.userRepository.save(currentUser);
         }
     }
 
-    public User getUserByTokenAndEmail(String token, String email){
-        return this.userRepository.findByRefreshTokenAndEmail(token, email);
+    public User getUserByRefreshTokenHashAndEmail(String refreshTokenHash, String email){
+        return this.userRepository.findByRefreshTokenAndEmail(refreshTokenHash, email);
+    }
+
+    @Transactional
+    public void changePassword(String email, ReqChangePasswordDTO req) throws IdInvalidException {
+        User currentUser = this.userRepository.findByEmail(email)
+                .orElseThrow(() -> new IdInvalidException("Nguoi dung khong ton tai"));
+
+        if (currentUser.getPassword() == null || currentUser.getPassword().isBlank()) {
+            throw new IdInvalidException("Tai khoan nay chua co mat khau cuc bo");
+        }
+
+        if (!this.passwordEncoder.matches(req.getCurrentPassword(), currentUser.getPassword())) {
+            throw new IdInvalidException("Mat khau hien tai khong chinh xac");
+        }
+
+        if (!req.getNewPassword().equals(req.getConfirmPassword())) {
+            throw new IdInvalidException("Mat khau xac nhan khong khop");
+        }
+
+        currentUser.setPassword(this.passwordEncoder.encode(req.getNewPassword()));
+        currentUser.setRefreshToken(null);
+        this.userRepository.save(currentUser);
     }
 
     private Role getRoleOrThrow(String roleName) throws IdInvalidException {
@@ -181,6 +224,14 @@ public class UserService {
             value = value.substring("ROLE_".length());
         }
         return value;
+    }
+
+    private String normalizeNullable(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private ResCreateUserDTO convertToResCreateUserDTO(User currentUser) {

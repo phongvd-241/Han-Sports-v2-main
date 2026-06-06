@@ -16,7 +16,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -42,22 +41,9 @@ public class FileController {
         List<String> fileNames = new ArrayList<>();
 
         for(MultipartFile file : files) {
-            String fileName = file.getOriginalFilename();
-            List<String> allowedExtensions = Arrays.asList("pdf", "jpg", "jpeg", "png", "doc", "docx");
-
-            String extension = "";
-            if (fileName != null && fileName.lastIndexOf(".") >= 0) {
-                extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
-            }
-            boolean isValid = allowedExtensions.contains(extension);
-
-            if (!isValid) {
-                throw new StorageException("Invalid file extension. Only allows " + allowedExtensions.toString());
-            }
-            //create a directory if not exist
+            this.fileService.validateImageFile(file, folder);
             this.fileService.createDirectory(folder);
 
-            //storage file
             String uploadedFile = this.fileService.store(file, folder);
             fileNames.add(uploadedFile);
         }

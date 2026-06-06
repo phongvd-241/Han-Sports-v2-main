@@ -1,5 +1,13 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
+import toast from "react-hot-toast";
 import { productApi } from "../../api/productApi";
+import AdminMetricCard from "../../components/admin/AdminMetricCard";
+import AdminPageHeader from "../../components/admin/AdminPageHeader";
+import AdminToolbar from "../../components/admin/AdminToolbar";
+import ConfirmDialog from "../../components/admin/ConfirmDialog";
+import DataTable from "../../components/admin/DataTable";
+import FormModal from "../../components/admin/FormModal";
+import IconButton from "../../components/admin/IconButton";
 import { useSettingStore } from "../../store/useSettingStore";
 import { getImageUrl, formatVND } from "../../utils/constants";
 import { notifySync, syncEvent } from "../../utils/sync";
@@ -10,6 +18,16 @@ const EMPTY_FORM = {
 };
 
 const TARGETS = ["Nam", "Nữ", "Unisex", "Trẻ em"];
+const PRODUCT_COLUMNS = [
+  { key: "index", label: "#", className: "px-4 py-3 text-left w-12", skeletonClassName: "h-8" },
+  { key: "image", label: "Ảnh", className: "px-4 py-3 text-left", skeletonClassName: "h-8" },
+  { key: "name", label: "Tên sản phẩm", className: "px-4 py-3 text-left", skeletonClassName: "h-8" },
+  { key: "category", label: "Danh mục", className: "px-4 py-3 text-left", skeletonClassName: "h-8" },
+  { key: "brand", label: "Thương hiệu", className: "px-4 py-3 text-left", skeletonClassName: "h-8" },
+  { key: "price", label: "Giá", className: "px-4 py-3 text-right", skeletonClassName: "h-8" },
+  { key: "stock", label: "Tồn kho", className: "px-4 py-3 text-right", skeletonClassName: "h-8" },
+  { key: "actions", label: "Thao tác", className: "px-4 py-3 text-center", skeletonClassName: "h-8" },
+];
 
 const getProductFirstImage = (p) => {
   if (!p) return "";
@@ -37,15 +55,17 @@ export default function ProductsPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [toast, setToast] = useState(null);
   const fileRef = useRef();
 
   const showToast = (msg, type = "success") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+    if (type === "error") {
+      toast.error(msg);
+      return;
+    }
+    toast.success(msg);
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
       const params = { page, size: 10 };
@@ -57,9 +77,9 @@ export default function ProductsPage() {
       setTotalElements(data?.meta?.total || 0);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
-  };
+  }, [page, search]);
 
-  useEffect(() => { fetchProducts(); }, [page, search]);
+  useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
   const openAdd = () => { setForm(EMPTY_FORM); setSelectedProduct(null); setModal("add"); };
   const openEdit = (p) => {
@@ -167,144 +187,102 @@ export default function ProductsPage() {
     } catch { showToast("Xóa sản phẩm thất bại!", "error"); }
     finally { setSaving(false); }
   };
+  const lowStockOnPage = products.filter((item) => (item.quantity || 0) > 0 && (item.quantity || 0) <= 5).length;
+  const outOfStockOnPage = products.filter((item) => (item.quantity || 0) <= 0).length;
+  const withImagesOnPage = products.filter((item) => Boolean(getProductFirstImage(item))).length;
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Toast */}
-      {toast && (
-        <div className={`fixed top-6 right-6 z-50 px-5 py-3 rounded-xl shadow-modal text-sm font-semibold flex items-center gap-2 animate-fade-up ${toast.type === "success" ? "bg-brand-green text-white" : "bg-danger text-white"}`}>
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{toast.type === "success" ? "check_circle" : "error"}</span>
-          {toast.msg}
-        </div>
-      )}
+      <AdminPageHeader
+        title="Sản phẩm"
+        description={`${totalElements} sản phẩm trong danh mục`}
+        actions={(
+          <button type="button" onClick={openAdd} className="btn-primary">
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
+            Thêm sản phẩm
+          </button>
+        )}
+      />
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-text-muted text-sm">{totalElements} sản phẩm</p>
-        </div>
-        <button onClick={openAdd} className="btn-primary">
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-          Thêm sản phẩm
-        </button>
-      </div>
-
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-text-muted" style={{ fontSize: 18 }}>search</span>
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-          placeholder="Tìm kiếm sản phẩm..."
-          className="input-field pl-10 py-2 text-sm"
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <AdminMetricCard icon="inventory_2" label="Tổng sản phẩm" value={totalElements.toLocaleString("vi-VN")} hint="Theo kết quả API" tone="blue" />
+        <AdminMetricCard icon="widgets" label="Đang hiển thị" value={products.length.toLocaleString("vi-VN")} hint={`Trang ${page + 1}/${totalPages}`} tone="teal" />
+        <AdminMetricCard icon="image" label="Có ảnh" value={withImagesOnPage.toLocaleString("vi-VN")} hint="Trong trang hiện tại" tone="green" />
+        <AdminMetricCard
+          icon={outOfStockOnPage > 0 ? "error" : "warning"}
+          label="Cần chú ý"
+          value={`${outOfStockOnPage} hết hàng`}
+          hint={`${lowStockOnPage} sắp hết trong trang này`}
+          tone={outOfStockOnPage > 0 ? "danger" : "amber"}
         />
       </div>
 
-      {/* Table */}
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-muted text-text-muted text-xs uppercase tracking-wider">
-                <th className="px-4 py-3 text-left w-12">#</th>
-                <th className="px-4 py-3 text-left">Ảnh</th>
-                <th className="px-4 py-3 text-left">Tên sản phẩm</th>
-                <th className="px-4 py-3 text-left">Danh mục</th>
-                <th className="px-4 py-3 text-left">Thương hiệu</th>
-                <th className="px-4 py-3 text-right">Giá</th>
-                <th className="px-4 py-3 text-right">Tồn kho</th>
-                <th className="px-4 py-3 text-center">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-border">
-              {loading ? (
-                [...Array(6)].map((_, i) => (
-                  <tr key={i}>
-                    {[...Array(7)].map((_, j) => (
-                      <td key={j} className="px-4 py-3"><div className="skeleton h-8 rounded" /></td>
-                    ))}
-                  </tr>
-                ))
-              ) : products.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-16 text-center text-text-muted">
-                    <span className="material-symbols-outlined" style={{ fontSize: 48 }}>inventory_2</span>
-                    <p className="mt-2 font-semibold">Không có sản phẩm nào</p>
-                  </td>
-                </tr>
-              ) : products.map((p, i) => (
-                <tr key={p.id} className="hover:bg-surface-soft transition-colors">
-                  <td className="px-4 py-3 text-text-muted text-xs">{page * 10 + i + 1}</td>
-                  <td className="px-4 py-3">
-                    <div className="w-12 h-12 rounded-lg bg-surface-muted overflow-hidden flex-shrink-0">
-                      {getProductFirstImage(p)
-                        ? <img src={getImageUrl(getProductFirstImage(p))} alt={p.name} className="w-full h-full object-contain p-1" />
-                        : <div className="w-full h-full flex items-center justify-center text-text-muted"><span className="material-symbols-outlined" style={{ fontSize: 20 }}>image_not_supported</span></div>
-                      }
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="font-semibold text-text-primary line-clamp-1">{p.name}</p>
-                    {p.target && <p className="text-xs text-text-muted mt-0.5">{p.target}</p>}
-                  </td>
-                  <td className="px-4 py-3">
-                    {p.category ? <span className="px-2 py-1 bg-surface-muted rounded text-[10px] font-bold uppercase">{p.category}</span> : <span className="text-text-muted">—</span>}
-                  </td>
-                  <td className="px-4 py-3">
-                    {p.brand ? <span className="badge-blue">{p.brand}</span> : <span className="text-text-muted">—</span>}
-                  </td>
-                  <td className="px-4 py-3 text-right font-bold text-brand-blue">{formatVND(p.price)}</td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={p.quantity > 0 ? "badge-green" : "badge-danger"}>{p.quantity}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-2">
-                      <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-brand-blue hover:bg-brand-blue-light transition-all" title="Sửa">
-                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>edit</span>
-                      </button>
-                      <button onClick={() => openDelete(p)} className="p-1.5 rounded-lg text-danger hover:bg-red-50 transition-all" title="Xóa">
-                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <AdminToolbar>
+        <div className="relative w-full max-w-sm">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-text-muted" style={{ fontSize: 18 }}>search</span>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            placeholder="Tìm kiếm sản phẩm..."
+            className="input-field pl-10 py-2 text-sm"
+          />
         </div>
+      </AdminToolbar>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-4 py-4 border-t border-surface-border flex items-center justify-between">
-            <p className="text-xs text-text-muted">Trang {page + 1} / {totalPages}</p>
-            <div className="flex gap-2">
-              <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0}
-                className="px-3 py-1.5 rounded-lg border border-surface-border text-xs font-semibold hover:border-brand-blue hover:text-brand-blue disabled:opacity-40 transition-all">
-                ← Trước
-              </button>
-              <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
-                className="px-3 py-1.5 rounded-lg border border-surface-border text-xs font-semibold hover:border-brand-blue hover:text-brand-blue disabled:opacity-40 transition-all">
-                Sau →
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      <DataTable
+        columns={PRODUCT_COLUMNS}
+        loading={loading}
+        isEmpty={products.length === 0}
+        emptyIcon="inventory_2"
+        emptyTitle="Không có sản phẩm nào"
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+      >
+        {products.map((p, i) => (
+          <tr key={p.id} className="hover:bg-surface-soft transition-colors">
+            <td className="px-4 py-3 text-text-muted text-xs">{page * 10 + i + 1}</td>
+            <td className="px-4 py-3">
+              <div className="w-12 h-12 rounded-lg bg-surface-muted overflow-hidden flex-shrink-0">
+                {getProductFirstImage(p)
+                  ? <img src={getImageUrl(getProductFirstImage(p))} alt={p.name} className="w-full h-full object-contain p-1" />
+                  : <div className="w-full h-full flex items-center justify-center text-text-muted"><span className="material-symbols-outlined" style={{ fontSize: 20 }}>image_not_supported</span></div>
+                }
+              </div>
+            </td>
+            <td className="px-4 py-3">
+              <p className="font-semibold text-text-primary line-clamp-1">{p.name}</p>
+              {p.target && <p className="text-xs text-text-muted mt-0.5">{p.target}</p>}
+            </td>
+            <td className="px-4 py-3">
+              {p.category ? <span className="px-2 py-1 bg-surface-muted rounded text-[10px] font-bold uppercase">{p.category}</span> : <span className="text-text-muted">-</span>}
+            </td>
+            <td className="px-4 py-3">
+              {p.brand ? <span className="badge-blue">{p.brand}</span> : <span className="text-text-muted">-</span>}
+            </td>
+            <td className="px-4 py-3 text-right font-bold text-brand-blue">{formatVND(p.price)}</td>
+            <td className="px-4 py-3 text-right">
+              <span className={p.quantity > 0 ? "badge-green" : "badge-danger"}>{p.quantity}</span>
+            </td>
+            <td className="px-4 py-3">
+              <div className="flex items-center justify-center gap-2">
+                <IconButton icon="edit" label="Sửa sản phẩm" variant="primary" onClick={() => openEdit(p)} />
+                <IconButton icon="delete" label="Xóa sản phẩm" variant="danger" onClick={() => openDelete(p)} />
+              </div>
+            </td>
+          </tr>
+        ))}
+      </DataTable>
 
       {/* Modal Add/Edit */}
       {(modal === "add" || modal === "edit") && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-modal w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-fade-up">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-surface-border sticky top-0 bg-white">
-              <h3 className="text-lg font-bold text-text-primary">
-                {modal === "add" ? "Thêm sản phẩm mới" : "Chỉnh sửa sản phẩm"}
-              </h3>
-              <button onClick={closeModal} className="p-2 rounded-lg hover:bg-surface-muted transition-all text-text-muted">
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
+        <FormModal
+          title={modal === "add" ? "Thêm sản phẩm mới" : "Chỉnh sửa sản phẩm"}
+          onClose={closeModal}
+          busy={saving || uploading}
+          maxWidth="max-w-2xl"
+        >
             <form onSubmit={handleSave} className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {/* Product name */}
@@ -434,31 +412,20 @@ export default function ProductsPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </FormModal>
       )}
 
       {/* Modal Delete */}
       {modal === "delete" && selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-modal w-full max-w-md p-8 text-center animate-fade-up">
-            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-              <span className="material-symbols-outlined text-danger" style={{ fontSize: 32 }}>delete_forever</span>
-            </div>
-            <h3 className="text-lg font-bold text-text-primary mb-2">Xác nhận xóa sản phẩm?</h3>
-            <p className="text-text-muted text-sm mb-6">
-              Bạn sắp xóa <strong>"{selectedProduct.name}"</strong>. Hành động này không thể hoàn tác.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={closeModal} className="flex-1 btn-ghost py-2.5 border border-surface-border rounded-xl">Hủy</button>
-              <button onClick={handleDelete} disabled={saving}
-                className="flex-1 bg-danger text-white py-2.5 rounded-xl font-semibold hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2">
-                {saving ? <span className="material-symbols-outlined animate-spin" style={{ fontSize: 16 }}>progress_activity</span> : null}
-                Xóa sản phẩm
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="Xác nhận xóa sản phẩm?"
+          description={`Bạn sắp xóa "${selectedProduct.name}". Hành động này không thể hoàn tác.`}
+          icon="delete_forever"
+          confirmLabel="Xóa sản phẩm"
+          loading={saving}
+          onCancel={closeModal}
+          onConfirm={handleDelete}
+        />
       )}
     </div>
   );

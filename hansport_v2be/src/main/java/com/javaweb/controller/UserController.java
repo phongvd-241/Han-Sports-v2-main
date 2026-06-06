@@ -8,6 +8,7 @@ import com.javaweb.domain.response.user.ResCreateUserDTO;
 import com.javaweb.domain.response.user.ResUpdateUserDTO;
 import com.javaweb.domain.response.user.ResUserDTO;
 import com.javaweb.service.UserService;
+import com.javaweb.util.SecurityUtil;
 import com.javaweb.util.annotation.ApiMessage;
 import com.javaweb.util.error.IdInvalidException;
 import com.turkraft.springfilter.boot.Filter;
@@ -45,7 +46,8 @@ public class UserController {
         {
             throw new IdInvalidException("User không tồn tại");
         }
-        this.userService.deleteUserById(id);
+        String email = SecurityUtil.getCurrentUserLogin().orElse("");
+        this.userService.deleteUserById(id, email);
         return ResponseEntity.ok(null);
     }
 

@@ -1,8 +1,8 @@
 package com.javaweb.domain.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.javaweb.domain.Role;
 import com.javaweb.domain.response.role.ResRoleDTO;
+import com.javaweb.domain.response.user.ResUserDTO;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -43,6 +43,6 @@ public class ResLoginDTO {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class UserGetAccount{
-        private UserLogin user;
+        private ResUserDTO user;
     }
 }

@@ -58,7 +58,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     setUserMenuOpen(false);
-    try { await authApi.logout(); } catch (_) {}
+    try { await authApi.logout(); } catch (err) { console.error(err); }
     clearAuth();
     navigate("/login");
   };

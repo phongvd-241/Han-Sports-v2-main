@@ -11,3 +11,4 @@ hansport_v2fe/.vite/
 *.log
 .env
 .env.local
+backups/

@@ -17,7 +17,7 @@ import java.util.List;
 public class ResCreateProductDTO {
     private long id;
     private String name;
-    private double price;
+    private long price;
 
     private String detailDesc;
 

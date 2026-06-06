@@ -1,7 +1,8 @@
 import axios from "axios";
 import { useAuthStore } from "../store/useAuthStore";
+import { API_BASE_URL } from "../utils/constants";
 
-const BASE_URL = "http://localhost:8080";
+const BASE_URL = API_BASE_URL;
 
 // Axios instance chính — dùng cho mọi request đã xác thực
 const axiosInstance = axios.create({

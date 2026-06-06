@@ -19,7 +19,7 @@ public class ReqProductDTO {
 
     @NotNull(message = "Price không được để trống")
     @DecimalMin(value = "0", inclusive = false, message = "Price phải lớn hơn 0")
-    private Double price;
+    private Long price;
 
     @NotBlank(message = "Mô tả chi tiết không được để trống")
     private String detailDesc;

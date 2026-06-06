@@ -8,4 +8,7 @@ export const cartApi = {
 
   removeFromCart: (cartDetailId) =>
     axiosInstance.delete(`/api/v1/carts/${cartDetailId}`),
+
+  updateQuantity: (cartDetailId, quantity) =>
+    axiosInstance.put(`/api/v1/carts/${cartDetailId}`, { quantity }),
 };

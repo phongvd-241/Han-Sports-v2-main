@@ -28,7 +28,7 @@ public class Product {
 
     @NotNull
     @DecimalMin(value = "0", inclusive = false, message = "Price phải lớn hơn 0")
-    private double price;
+    private long price;
 
     @NotNull
     @NotEmpty(message = "Mô tả chi tiết không được để trống")

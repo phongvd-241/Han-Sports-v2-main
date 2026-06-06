@@ -11,12 +11,17 @@ import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class SecurityUtil {
@@ -53,6 +58,7 @@ public class SecurityUtil {
 
         // @formatter:off
         JwtClaimsSet claims = JwtClaimsSet.builder()
+                .id(UUID.randomUUID().toString())
                 .issuedAt(now)
                 .expiresAt(validity)
                 .subject(email)
@@ -76,6 +82,7 @@ public class SecurityUtil {
 
         // @formatter:off
         JwtClaimsSet claims = JwtClaimsSet.builder()
+                .id(UUID.randomUUID().toString())
                 .issuedAt(now)
                 .expiresAt(validity)
                 .subject(email)
@@ -110,6 +117,21 @@ public class SecurityUtil {
         NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withSecretKey(
                 getSecretKey()).macAlgorithm(SecurityUtil.JWT_ALGORITHM).build();
         return jwtDecoder.decode(token);
+    }
+
+    public String hashRefreshToken(String rawToken) {
+        if (rawToken == null) {
+            return null;
+        }
+        try {
+            byte[] keyBytes = Base64.from(jwtKey).decode();
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(keyBytes, "HmacSHA256"));
+            byte[] digest = mac.doFinal(rawToken.getBytes(StandardCharsets.UTF_8));
+            return java.util.Base64.getEncoder().encodeToString(digest);
+        } catch (NoSuchAlgorithmException | InvalidKeyException ex) {
+            throw new IllegalStateException("Cannot hash refresh token", ex);
+        }
     }
 
     private String normalizeRole(String roleName) {

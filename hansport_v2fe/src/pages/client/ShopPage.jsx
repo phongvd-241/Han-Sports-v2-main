@@ -7,7 +7,6 @@ import { useAuthStore } from "../../store/useAuthStore";
 import { useCartStore } from "../../store/useCartStore";
 import { useSettingStore } from "../../store/useSettingStore";
 import ProductCard from "../../components/common/ProductCard";
-import { formatVND, getImageUrl } from "../../utils/constants";
 import { onSync, syncEvent } from "../../utils/sync";
 
 const PRICE_RANGES = [
@@ -21,7 +20,7 @@ const PRICE_RANGES = [
 export default function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuthStore();
-  const { setCart, totalCount } = useCartStore();
+  const { setCart } = useCartStore();
   const { getSetting, refreshSettings } = useSettingStore();
   
   const BRANDS = getSetting("BRANDS", ["Yonex", "Victor", "Lining", "Kawasaki", "Mizuno", "Apacs", "Flypower", "Kumpoo", "Khác"]);

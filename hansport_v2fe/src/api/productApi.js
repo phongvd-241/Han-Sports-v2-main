@@ -16,19 +16,19 @@ export const productApi = {
   remove: (id) =>
     axiosInstance.delete(`/api/v1/products/${id}`),
 
-  uploadFile: (file) => {
+  uploadFile: (file, folder = "product") => {
     const formData = new FormData();
     formData.append("files", file);
-    formData.append("folder", "product");
+    formData.append("folder", folder);
     return axiosInstance.post("/api/v1/files", formData);
   },
 
-  uploadFiles: (files) => {
+  uploadFiles: (files, folder = "product") => {
     const formData = new FormData();
 
     files.forEach((f) => formData.append("files", f));
 
-    formData.append("folder", "product");
+    formData.append("folder", folder);
 
     return axiosInstance.post("/api/v1/files", formData);
   },

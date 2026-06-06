@@ -2,6 +2,7 @@ package com.javaweb.controller;
 
 import com.javaweb.domain.Cart;
 import com.javaweb.domain.request.ReqAddProductToCartDTO;
+import com.javaweb.domain.request.ReqUpdateCartDetailDTO;
 import com.javaweb.domain.response.cart.ResCartDTO;
 import com.javaweb.service.CartService;
 import com.javaweb.util.SecurityUtil;
@@ -55,5 +56,16 @@ public class CartController {
 
 
         return ResponseEntity.ok().body(null);
+    }
+
+    @PutMapping("/carts/{id}")
+    @ApiMessage("Update cart detail quantity")
+    public ResponseEntity<ResCartDTO> updateCartDetail(@PathVariable long id,
+                                                       @RequestBody @Valid ReqUpdateCartDetailDTO req)
+            throws IdInvalidException {
+        String email = SecurityUtil.getCurrentUserLogin().isPresent() ?
+                SecurityUtil.getCurrentUserLogin().get() : "";
+        ResCartDTO cart = this.cartService.updateCartDetailQuantity(email, id, req.getQuantity());
+        return ResponseEntity.ok().body(cart);
     }
 }

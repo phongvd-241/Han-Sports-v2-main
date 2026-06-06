@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { useEffect, useRef } from "react";
 import Header from "../components/common/Header";
 import Footer from "../components/common/Footer";
@@ -12,7 +12,6 @@ export default function ClientLayout() {
   const { user, setAuth, clearAuth } = useAuthStore();
   const { setCart } = useCartStore();
   const initialized = useRef(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (initialized.current) return;
@@ -53,7 +52,7 @@ export default function ClientLayout() {
     };
 
     tryRestoreSession().then(loadCart);
-  }, []);
+  }, [clearAuth, setAuth, setCart, user]);
 
   return (
     <div className="flex flex-col min-h-screen bg-surface-soft">

@@ -1,8 +1,24 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { orderApi } from "../../api/orderApi";
+import AdminMetricCard from "../../components/admin/AdminMetricCard";
+import AdminPageHeader from "../../components/admin/AdminPageHeader";
+import AdminToolbar from "../../components/admin/AdminToolbar";
+import ConfirmDialog from "../../components/admin/ConfirmDialog";
+import DataTable from "../../components/admin/DataTable";
+import IconButton from "../../components/admin/IconButton";
+import StatusBadge from "../../components/admin/StatusBadge";
 import { formatVND, formatDate, ORDER_STATUS } from "../../utils/constants";
 
 const STATUS_LIST = ["PENDING", "PROCESSING", "SHIPPING", "COMPLETED", "CANCELLED"];
+const ORDER_COLUMNS = [
+  { key: "id", label: "Mã đơn", className: "px-4 py-3 text-left" },
+  { key: "customer", label: "Khách hàng", className: "px-4 py-3 text-left" },
+  { key: "createdAt", label: "Ngày đặt", className: "px-4 py-3 text-left" },
+  { key: "total", label: "Tổng tiền", className: "px-4 py-3 text-right" },
+  { key: "status", label: "Trạng thái", className: "px-4 py-3 text-center" },
+  { key: "actions", label: "Thao tác", className: "px-4 py-3 text-center" },
+];
 
 export default function OrdersAdminPage() {
   const [orders, setOrders] = useState([]);
@@ -12,15 +28,11 @@ export default function OrdersAdminPage() {
   const [totalElements, setTotalElements] = useState(0);
   const [filterStatus, setFilterStatus] = useState("");
   const [selected, setSelected] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [updating, setUpdating] = useState(false);
-  const [toast, setToast] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const showToast = (msg, type = "success") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const params = { page, size: 10 };
@@ -30,176 +42,187 @@ export default function OrdersAdminPage() {
       setOrders(data?.result || []);
       setTotalPages(data?.meta?.pages || 1);
       setTotalElements(data?.meta?.total || 0);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  };
+    } catch (e) {
+      console.error(e);
+      toast.error("Không thể tải danh sách đơn hàng.");
+    } finally {
+      setLoading(false);
+    }
+  }, [filterStatus, page]);
 
-  useEffect(() => { fetchOrders(); }, [page, filterStatus]);
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   const handleUpdateStatus = async (order, newStatus) => {
     setUpdating(true);
     try {
       await orderApi.updateOrder({ id: order.id, status: newStatus });
-      setOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, status: newStatus } : o));
+      setOrders((prev) => prev.map((item) => item.id === order.id ? { ...item, status: newStatus } : item));
       if (selected?.id === order.id) setSelected({ ...selected, status: newStatus });
+
       if (newStatus === "PROCESSING") {
         try {
           await orderApi.sendOrderEmail(order.id);
-          showToast("Cập nhật trạng thái thành công! Đã gửi email.");
+          toast.success("Cập nhật trạng thái thành công. Đã gửi email.");
         } catch (e) {
           console.error("Gửi email thất bại", e);
-          showToast("Cập nhật thành công nhưng gửi email thất bại!", "error");
+          toast.error("Cập nhật thành công nhưng gửi email thất bại.");
         }
       } else {
-        showToast(`Cập nhật trạng thái thành công!`);
+        toast.success("Cập nhật trạng thái thành công.");
       }
-    } catch { showToast("Cập nhật thất bại!", "error"); }
-    finally { setUpdating(false); }
+    } catch {
+      toast.error("Cập nhật thất bại.");
+    } finally {
+      setUpdating(false);
+    }
   };
 
-  const handleDelete = async (order) => {
-    if (!window.confirm(`Xác nhận xóa đơn hàng #${String(order.id).padStart(6, "0")}?`)) return;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await orderApi.deleteOrder(order.id);
-      setOrders((prev) => prev.filter((o) => o.id !== order.id));
-      setSelected(null);
-      showToast("Đã xóa đơn hàng!");
-    } catch { showToast("Xóa đơn hàng thất bại!", "error"); }
+      await orderApi.deleteOrder(deleteTarget.id);
+      setOrders((prev) => prev.filter((item) => item.id !== deleteTarget.id));
+      setSelected((current) => current?.id === deleteTarget.id ? null : current);
+      setDeleteTarget(null);
+      toast.success("Đã xóa đơn hàng.");
+    } catch {
+      toast.error("Xóa đơn hàng thất bại.");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const getOrderTotal = (order) =>
-    (order.orderDetails || []).reduce((s, i) => s + (i.price || 0) * (i.quantity || 0), 0);
+    order.totalPrice || (order.orderDetails || []).reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
+  const revenueOnPage = orders.reduce((sum, order) => sum + getOrderTotal(order), 0);
+  const pendingOnPage = orders.filter((order) => order.status === "PENDING").length;
+  const processingOnPage = orders.filter((order) => order.status === "PROCESSING").length;
+  const selectedFilterLabel = filterStatus ? ORDER_STATUS[filterStatus]?.label || filterStatus : "Tất cả";
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Toast */}
-      {toast && (
-        <div className={`fixed top-6 right-6 z-50 px-5 py-3 rounded-xl shadow-modal text-sm font-semibold flex items-center gap-2 animate-fade-up ${toast.type === "success" ? "bg-brand-green text-white" : "bg-danger text-white"}`}>
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{toast.type === "success" ? "check_circle" : "error"}</span>
-          {toast.msg}
-        </div>
-      )}
+      <AdminPageHeader
+        title="Đơn hàng"
+        description={`${totalElements} đơn hàng trong hệ thống`}
+      />
 
-      {/* Status Filter Tabs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <AdminMetricCard icon="receipt_long" label="Tổng đơn" value={totalElements.toLocaleString("vi-VN")} hint={`Bộ lọc: ${selectedFilterLabel}`} tone="blue" />
+        <AdminMetricCard icon="payments" label="Tổng trang này" value={formatVND(revenueOnPage)} hint={`${orders.length} đơn đang hiển thị`} tone="green" />
+        <AdminMetricCard icon="pending_actions" label="Chờ xác nhận" value={pendingOnPage.toLocaleString("vi-VN")} hint="Trong trang hiện tại" tone={pendingOnPage > 0 ? "amber" : "teal"} />
+        <AdminMetricCard icon="mark_email_read" label="Đang xử lý" value={processingOnPage.toLocaleString("vi-VN")} hint="Có thể đã gửi email" tone="teal" />
+      </div>
+
+      <AdminToolbar>
       <div className="flex gap-2 flex-wrap">
-        <button onClick={() => { setFilterStatus(""); setPage(0); }}
+        <button
+          onClick={() => {
+            setFilterStatus("");
+            setPage(0);
+          }}
           className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${!filterStatus ? "text-white shadow-blue-glow" : "bg-white border border-surface-border text-text-secondary hover:border-brand-blue hover:text-brand-blue"}`}
-          style={!filterStatus ? { background: "linear-gradient(135deg, #16a34a, #1d4ed8)" } : {}}>
+          style={!filterStatus ? { background: "linear-gradient(135deg, #16a34a, #1d4ed8)" } : {}}
+        >
           Tất cả ({totalElements})
         </button>
-        {STATUS_LIST.map((s) => {
-          const info = ORDER_STATUS[s] || { label: s, color: "badge-blue" };
-          const isActive = filterStatus === s;
+        {STATUS_LIST.map((statusKey) => {
+          const info = ORDER_STATUS[statusKey] || { label: statusKey, color: "badge-blue" };
+          const isActive = filterStatus === statusKey;
           return (
-            <button key={s} onClick={() => { setFilterStatus(s); setPage(0); }}
+            <button
+              key={statusKey}
+              onClick={() => {
+                setFilterStatus(statusKey);
+                setPage(0);
+              }}
               className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${isActive ? "text-white shadow-blue-glow" : "bg-white border border-surface-border text-text-secondary hover:border-brand-blue hover:text-brand-blue"}`}
-              style={isActive ? { background: "linear-gradient(135deg, #16a34a, #1d4ed8)" } : {}}>
+              style={isActive ? { background: "linear-gradient(135deg, #16a34a, #1d4ed8)" } : {}}
+            >
               {info.label}
             </button>
           );
         })}
       </div>
+      </AdminToolbar>
 
-      <div className="flex gap-6">
-        {/* Orders Table */}
+      <div className="flex flex-col xl:flex-row gap-6">
         <div className="flex-1 min-w-0">
-          <div className="card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-surface-muted text-text-muted text-xs uppercase tracking-wider">
-                    <th className="px-4 py-3 text-left">Mã đơn</th>
-                    <th className="px-4 py-3 text-left">Khách hàng</th>
-                    <th className="px-4 py-3 text-left">Ngày đặt</th>
-                    <th className="px-4 py-3 text-right">Tổng tiền</th>
-                    <th className="px-4 py-3 text-center">Trạng thái</th>
-                    <th className="px-4 py-3 text-center">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-border">
-                  {loading
-                    ? [...Array(6)].map((_, i) => (
-                      <tr key={i}>{[...Array(6)].map((_, j) => <td key={j} className="px-4 py-3"><div className="skeleton h-7 rounded" /></td>)}</tr>
-                    ))
-                    : orders.length === 0
-                      ? (
-                        <tr><td colSpan={6} className="px-4 py-16 text-center text-text-muted">
-                          <span className="material-symbols-outlined" style={{ fontSize: 48 }}>receipt_long</span>
-                          <p className="mt-2 font-semibold">Không có đơn hàng nào</p>
-                        </td></tr>
-                      )
-                      : orders.map((order) => {
-                        const status = ORDER_STATUS[order.status] || { label: order.status || "N/A", color: "badge-blue" };
-                        const isSelected = selected?.id === order.id;
-                        return (
-                          <tr key={order.id}
-                            onClick={() => setSelected(isSelected ? null : order)}
-                            className={`cursor-pointer transition-colors ${isSelected ? "bg-brand-blue-light" : "hover:bg-surface-soft"}`}>
-                            <td className="px-4 py-3 font-bold text-brand-blue">#{String(order.id).padStart(6, "0")}</td>
-                            <td className="px-4 py-3 text-text-primary">{order.receiverName || order.user?.fullName || "—"}</td>
-                            <td className="px-4 py-3 text-text-muted text-xs">{formatDate(order.createdAt)}</td>
-                            <td className="px-4 py-3 text-right font-semibold">{formatVND(getOrderTotal(order))}</td>
-                            <td className="px-4 py-3 text-center"><span className={status.color}>{status.label}</span></td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center justify-center gap-1">
-                                <button onClick={(e) => { e.stopPropagation(); setSelected(order); }}
-                                  className="p-1.5 rounded-lg text-brand-blue hover:bg-brand-blue-light transition-all" title="Chi tiết">
-                                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>visibility</span>
-                                </button>
-                                <button onClick={(e) => { e.stopPropagation(); handleDelete(order); }}
-                                  className="p-1.5 rounded-lg text-danger hover:bg-red-50 transition-all" title="Xóa">
-                                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                  }
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="px-4 py-4 border-t border-surface-border flex items-center justify-between">
-                <p className="text-xs text-text-muted">Trang {page + 1} / {totalPages}</p>
-                <div className="flex gap-2">
-                  <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0}
-                    className="px-3 py-1.5 rounded-lg border border-surface-border text-xs font-semibold hover:border-brand-blue disabled:opacity-40 transition-all">← Trước</button>
-                  <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
-                    className="px-3 py-1.5 rounded-lg border border-surface-border text-xs font-semibold hover:border-brand-blue disabled:opacity-40 transition-all">Sau →</button>
-                </div>
-              </div>
-            )}
-          </div>
+          <DataTable
+            columns={ORDER_COLUMNS}
+            loading={loading}
+            isEmpty={orders.length === 0}
+            emptyIcon="receipt_long"
+            emptyTitle="Không có đơn hàng nào"
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          >
+            {orders.map((order) => {
+              const status = ORDER_STATUS[order.status] || { label: order.status || "N/A", color: "badge-blue" };
+              const isSelected = selected?.id === order.id;
+              return (
+                <tr
+                  key={order.id}
+                  onClick={() => setSelected(isSelected ? null : order)}
+                  className={`cursor-pointer transition-colors ${isSelected ? "bg-brand-blue-light" : "hover:bg-surface-soft"}`}
+                >
+                  <td className="px-4 py-3 font-bold text-brand-blue">#{String(order.id).padStart(6, "0")}</td>
+                  <td className="px-4 py-3 text-text-primary">{order.receiverName || order.user?.fullName || "-"}</td>
+                  <td className="px-4 py-3 text-text-muted text-xs">{formatDate(order.createdAt)}</td>
+                  <td className="px-4 py-3 text-right font-semibold">{formatVND(getOrderTotal(order))}</td>
+                  <td className="px-4 py-3 text-center"><StatusBadge label={status.label} className={status.color} /></td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center gap-1">
+                      <IconButton
+                        icon="visibility"
+                        label="Xem chi tiết đơn hàng"
+                        variant="primary"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelected(order);
+                        }}
+                      />
+                      <IconButton
+                        icon="delete"
+                        label="Xóa đơn hàng"
+                        variant="danger"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setDeleteTarget(order);
+                        }}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </DataTable>
         </div>
 
-        {/* Detail Panel */}
         {selected && (
-          <div className="w-80 flex-shrink-0 animate-fade-up">
-            <div className="card p-5 sticky top-24">
+          <div className="w-full xl:w-80 flex-shrink-0 animate-fade-up">
+            <div className="card p-5 xl:sticky xl:top-24">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="font-bold text-text-primary">Chi tiết đơn #{String(selected.id).padStart(6, "0")}</h3>
-                <button onClick={() => setSelected(null)} className="p-1.5 rounded-lg hover:bg-surface-muted transition-all text-text-muted">
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
-                </button>
+                <IconButton icon="close" label="Đóng chi tiết đơn hàng" onClick={() => setSelected(null)} />
               </div>
 
-              {/* Delivery info */}
               <div className="bg-brand-blue-light rounded-xl p-4 mb-4 text-sm">
                 <p className="font-semibold text-brand-blue mb-2 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>local_shipping</span>Giao hàng tới
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>local_shipping</span>
+                  Giao hàng tới
                 </p>
-                <p className="text-text-primary font-medium">{selected.receiverName} — {selected.receiverPhone}</p>
+                <p className="text-text-primary font-medium">{selected.receiverName} - {selected.receiverPhone}</p>
                 <p className="text-text-secondary text-xs mt-1">{selected.receiverAddress}</p>
                 {selected.note && <p className="text-text-muted text-xs italic mt-1">"{selected.note}"</p>}
               </div>
 
-              {/* Items */}
               <div className="flex flex-col gap-2 mb-4 max-h-48 overflow-y-auto hide-scrollbar">
-                {(selected.orderDetails || []).map((item, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs bg-surface-muted rounded-lg p-2">
+                {(selected.orderDetails || []).map((item, index) => (
+                  <div key={index} className="flex items-center gap-2 text-xs bg-surface-muted rounded-lg p-2">
                     <span className="font-medium text-text-primary flex-1 line-clamp-1">{item.product?.name || item.productName || "SP"}</span>
                     <span className="text-text-muted">x{item.quantity}</span>
                     <span className="font-bold text-brand-blue">{formatVND(item.price * item.quantity)}</span>
@@ -212,18 +235,20 @@ export default function OrdersAdminPage() {
                 <span className="text-brand-blue">{formatVND(getOrderTotal(selected))}</span>
               </div>
 
-              {/* Update Status */}
               <div>
                 <p className="text-xs font-semibold text-text-muted mb-2 uppercase tracking-wide">Cập nhật trạng thái</p>
                 <div className="flex flex-col gap-2">
-                  {STATUS_LIST.map((s) => {
-                    const info = ORDER_STATUS[s] || { label: s };
-                    const isCurrent = selected.status === s;
+                  {STATUS_LIST.map((statusKey) => {
+                    const info = ORDER_STATUS[statusKey] || { label: statusKey };
+                    const isCurrent = selected.status === statusKey;
                     return (
-                      <button key={s} disabled={isCurrent || updating}
-                        onClick={() => handleUpdateStatus(selected, s)}
+                      <button
+                        key={statusKey}
+                        disabled={isCurrent || updating}
+                        onClick={() => handleUpdateStatus(selected, statusKey)}
                         className={`py-2 rounded-xl text-sm font-semibold transition-all border ${isCurrent ? "text-white border-transparent cursor-default" : "bg-white border-surface-border text-text-secondary hover:border-brand-blue hover:text-brand-blue"}`}
-                        style={isCurrent ? { background: "linear-gradient(135deg, #16a34a, #1d4ed8)" } : {}}>
+                        style={isCurrent ? { background: "linear-gradient(135deg, #16a34a, #1d4ed8)" } : {}}
+                      >
                         {isCurrent && <span className="material-symbols-outlined mr-1.5" style={{ fontSize: 14, verticalAlign: "middle" }}>check</span>}
                         {info.label}
                       </button>
@@ -235,6 +260,20 @@ export default function OrdersAdminPage() {
           </div>
         )}
       </div>
+
+      {deleteTarget && (
+        <ConfirmDialog
+          title="Xác nhận xóa đơn hàng?"
+          description={`Bạn sắp xóa đơn hàng #${String(deleteTarget.id).padStart(6, "0")}. Hành động này không thể hoàn tác.`}
+          icon="delete_forever"
+          confirmLabel="Xóa đơn hàng"
+          loading={deleting}
+          onCancel={() => {
+            if (!deleting) setDeleteTarget(null);
+          }}
+          onConfirm={handleDelete}
+        />
+      )}
     </div>
   );
 }

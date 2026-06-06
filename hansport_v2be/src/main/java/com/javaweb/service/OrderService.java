@@ -65,7 +65,7 @@ public class OrderService {
             throw new IdInvalidException("Không có sản phẩm nào được chọn để thanh toán");
         }
 
-        double sum = 0;
+        long sum = 0;
         for (CartDetail cd : orderItems) {
             Product product = cd.getProduct();
             if (product.getQuantity() < cd.getQuantity()) {
@@ -86,9 +86,10 @@ public class OrderService {
         List<OrderDetail> savedOrderDetails = new ArrayList<>();
         for (CartDetail cartDetail : orderItems) {
             Product product = cartDetail.getProduct();
-            product.setQuantity(product.getQuantity() - cartDetail.getQuantity());
-            product.setSold(product.getSold() + cartDetail.getQuantity());
-            this.productRepository.save(product);
+            int affectedRows = this.productRepository.decrementStockIfAvailable(product.getId(), cartDetail.getQuantity());
+            if (affectedRows == 0) {
+                throw new IdInvalidException("San pham " + product.getName() + " khong du ton kho");
+            }
 
             OrderDetail orderDetail = new OrderDetail();
             orderDetail.setOrder(order);
@@ -190,7 +191,8 @@ public class OrderService {
         return resultPaginationDTO;
     }
 
-    public void sendOrderEmail(long id){
+    @Transactional(readOnly = true)
+    public void sendOrderEmail(long id) throws IdInvalidException {
         Optional<Order> order = this.orderRepository.findById(id);
         if(order.isPresent()){
             Order currentOrder =  order.get();
@@ -221,8 +223,9 @@ public class OrderService {
                     orderEmailDTO
             );
 
+        } else {
+            throw new IdInvalidException("Don hang khong ton tai");
         }
-
     }
 
     public ResOrderDTO convertToResOrderDTO(Order order) {

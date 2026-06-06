@@ -20,7 +20,7 @@ public class CartDetail {
 
     private long quantity;
 
-    private double price;
+    private long price;
 
     // cart_id: long
     @ManyToOne

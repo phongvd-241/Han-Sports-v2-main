@@ -34,6 +34,7 @@ public class CartService {
         this.productRepository = productRepository;
     }
 
+    @Transactional(readOnly = true)
     public ResCartDTO getCart(String email) throws IdInvalidException {
         User currentUser = this.getUserOrThrow(email);
         Optional<Cart> cart = this.cartRepository.findByUser(currentUser);
@@ -120,6 +121,32 @@ public class CartService {
     public boolean isCartDetailExist(long cartDetailId){
         return this.cartDetailRepository.existsById(cartDetailId);
 
+    }
+
+    @Transactional
+    public ResCartDTO updateCartDetailQuantity(String email, long cartDetailId, long quantity) throws IdInvalidException {
+        User currentUser = this.getUserOrThrow(email);
+        CartDetail cartDetail = this.cartDetailRepository.findById(cartDetailId)
+                .orElseThrow(() -> new IdInvalidException("Cart Detail khong ton tai"));
+
+        Cart currentCart = cartDetail.getCart();
+        if (currentCart == null || currentCart.getUser() == null || currentCart.getUser().getId() != currentUser.getId()) {
+            throw new IdInvalidException("Ban khong co quyen cap nhat san pham nay trong gio hang");
+        }
+
+        Product product = cartDetail.getProduct();
+        if (product == null) {
+            throw new IdInvalidException("San pham khong ton tai");
+        }
+
+        if (quantity > product.getQuantity()) {
+            throw new IdInvalidException("So luong vuot qua ton kho");
+        }
+
+        cartDetail.setQuantity(quantity);
+        this.cartDetailRepository.save(cartDetail);
+        Cart latestCart = this.cartRepository.findById(currentCart.getId()).orElse(currentCart);
+        return this.convertToResCartDTO(latestCart);
     }
 
     public ResCartDTO convertToResCartDTO (Cart cart){

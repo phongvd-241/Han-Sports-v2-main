@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { productApi } from "../../api/productApi";
@@ -61,18 +61,18 @@ export default function HomePage() {
   const HERO_SLIDES = getSetting("HERO_SLIDES", []);
   const CATEGORIES = getSetting("CATEGORIES", []);
 
-  const fetchProducts = () => {
+  const fetchProducts = useCallback(() => {
     setLoading(true);
     // Fetch 12 products to fill both Flash Sale (4) and Latest (8) sections
     productApi.getAll({ page: 0, size: 12, sort: "id,desc" })
       .then((res) => setProducts(res.data?.data?.result || []))
       .catch(console.error)
       .finally(() => setLoading(false));
-  };
+  }, []);
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
 
   useEffect(() => {
     const unsub = onSync((event) => {
@@ -80,7 +80,7 @@ export default function HomePage() {
       if (event === syncEvent.SETTING_UPDATED) refreshSettings();
     });
     return unsub;
-  }, []);
+  }, [fetchProducts, refreshSettings]);
 
   const [isPaused, setIsPaused] = useState(false);
   const [dragged, setDragged] = useState(false);
@@ -100,8 +100,6 @@ export default function HomePage() {
       toast.success("Đã thêm vào giỏ hàng!");
     } catch { toast.error("Thêm vào giỏ hàng thất bại!"); }
   };
-
-  const hero = HERO_SLIDES.length > 0 ? HERO_SLIDES[heroIdx] : null;
 
   return (
     <div className="min-h-screen bg-surface-soft">
@@ -140,11 +138,12 @@ export default function HomePage() {
             }}
           >
             {HERO_SLIDES.map((slide, i) => {
+              const bannerImage = getFirstImage(slide);
               const Content = (
                 <div className="w-full h-full relative overflow-hidden bg-surface-muted">
-                  {getFirstImage(slide) ? (
+                  {bannerImage ? (
                     <img
-                      src={getImageUrl(getFirstImage(slide))}
+                      src={getImageUrl(bannerImage, slide.imageFolder || "product")}
                       alt="Banner"
                       className="w-full h-full object-cover select-none pointer-events-none"
                     />

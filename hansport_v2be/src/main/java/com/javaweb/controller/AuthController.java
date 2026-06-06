@@ -2,12 +2,15 @@ package com.javaweb.controller;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.javaweb.domain.User;
+import com.javaweb.domain.request.ReqAccountUpdateDTO;
+import com.javaweb.domain.request.ReqChangePasswordDTO;
 import com.javaweb.domain.request.ReqGoogleLoginDTO;
 import com.javaweb.domain.request.ReqLoginDTO;
 import com.javaweb.domain.request.ReqRegisterDTO;
 import com.javaweb.domain.response.ResLoginDTO;
 import com.javaweb.domain.response.role.ResRoleDTO;
 import com.javaweb.domain.response.user.ResCreateUserDTO;
+import com.javaweb.domain.response.user.ResUserDTO;
 import com.javaweb.service.GoogleTokenVerifierService;
 import com.javaweb.service.UserService;
 import com.javaweb.util.SecurityUtil;
@@ -83,7 +86,7 @@ public class AuthController {
         String refresh_token = this.securityUtil.createRefreshToken(loginDTO.getUsername(), resLoginDTO);
 
         //update token
-        this.userService.updateUserToken(refresh_token, loginDTO.getUsername());
+        this.userService.updateUserRefreshTokenHash(this.securityUtil.hashRefreshToken(refresh_token), loginDTO.getUsername());
 
         // set cookies
         ResponseCookie resCookies = ResponseCookie
@@ -134,7 +137,7 @@ public class AuthController {
         String refresh_token = this.securityUtil.createRefreshToken(email, resLoginDTO);
 
         //update token
-        this.userService.updateUserToken(refresh_token, email);
+        this.userService.updateUserRefreshTokenHash(this.securityUtil.hashRefreshToken(refresh_token), email);
 
         // set cookies
         ResponseCookie resCookies = ResponseCookie
@@ -159,26 +162,22 @@ public class AuthController {
 
     @GetMapping("/auth/account")
     @ApiMessage("fetch account")
-    public ResponseEntity<ResLoginDTO.UserGetAccount> getAccount(){
-        String email = SecurityUtil.getCurrentUserLogin().isPresent() ?
-                SecurityUtil.getCurrentUserLogin().get() : "";
-
+    public ResponseEntity<ResLoginDTO.UserGetAccount> getAccount() throws IdInvalidException {
+        String email = this.currentEmailOrThrow();
         User currentUserDB = this.userService.getUserByUsername(email);
-        ResLoginDTO resLoginDTO = new ResLoginDTO();
-        ResLoginDTO.UserGetAccount userGetAccount = new ResLoginDTO.UserGetAccount();
-        if (currentUserDB != null) {
-            ResRoleDTO role = this.convertToRoleDTO(currentUserDB);
-            ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin(
-                    currentUserDB.getId(),
-                    currentUserDB.getEmail(),
-                    currentUserDB.getFullName(),
-                    role);
-            resLoginDTO.setUser(userLogin);
-
-            userGetAccount.setUser(userLogin);
-
+        if (currentUserDB == null) {
+            throw new IdInvalidException("User does not exist");
         }
+        ResLoginDTO.UserGetAccount userGetAccount = new ResLoginDTO.UserGetAccount();
+        userGetAccount.setUser(this.userService.convertToResUserDTO(currentUserDB));
+
         return ResponseEntity.ok().body(userGetAccount);
+    }
+
+    @PutMapping("/auth/account")
+    @ApiMessage("update account profile")
+    public ResponseEntity<ResUserDTO> updateAccount(@RequestBody @Valid ReqAccountUpdateDTO req) throws IdInvalidException {
+        return ResponseEntity.ok(this.userService.updateAccountProfile(this.currentEmailOrThrow(), req));
     }
 
     @GetMapping("/auth/refresh")
@@ -193,7 +192,7 @@ public class AuthController {
         String email = decodedToken.getSubject();
 
         // check user by token + email
-        User currentUser = this.userService.getUserByTokenAndEmail(refresh_token, email);
+        User currentUser = this.userService.getUserByRefreshTokenHashAndEmail(this.securityUtil.hashRefreshToken(refresh_token), email);
         if (currentUser == null) {
             throw new IdInvalidException("Refresh Token không hợp lệ");
         }
@@ -220,7 +219,7 @@ public class AuthController {
         String new_refresh_token = this.securityUtil.createRefreshToken(email, res);
 
         // update user
-        this.userService.updateUserToken(new_refresh_token, email);
+        this.userService.updateUserRefreshTokenHash(this.securityUtil.hashRefreshToken(new_refresh_token), email);
 
         // set cookies
         ResponseCookie resCookies = ResponseCookie
@@ -247,9 +246,34 @@ public class AuthController {
         }
 
         // update refresh token = null
-        this.userService.updateUserToken(null, email);
+        this.userService.updateUserRefreshTokenHash(null, email);
 
         // remove refresh token cookie
+        ResponseCookie deleteSpringCookie = ResponseCookie
+                .from("refresh_token", null)
+                .httpOnly(true)
+                .secure(secureCookie)
+                .path("/")
+                .sameSite("Lax")
+                .maxAge(0)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, deleteSpringCookie.toString())
+                .body(null);
+    }
+
+    @PostMapping("/auth/change-password")
+    @ApiMessage("Change password")
+    public ResponseEntity<Void> changePassword(@RequestBody @Valid ReqChangePasswordDTO req) throws IdInvalidException {
+        String email = SecurityUtil.getCurrentUserLogin().isPresent() ? SecurityUtil.getCurrentUserLogin().get() : "";
+
+        if (email.equals("")) {
+            throw new IdInvalidException("Access Token khong hop le");
+        }
+
+        this.userService.changePassword(email, req);
+
         ResponseCookie deleteSpringCookie = ResponseCookie
                 .from("refresh_token", null)
                 .httpOnly(true)
@@ -269,5 +293,11 @@ public class AuthController {
             return null;
         }
         return new ResRoleDTO(user.getRole().getName(), user.getRole().getDecription());
+    }
+
+    private String currentEmailOrThrow() throws IdInvalidException {
+        return SecurityUtil.getCurrentUserLogin()
+                .filter(email -> !email.isBlank())
+                .orElseThrow(() -> new IdInvalidException("Access token is invalid"));
     }
 }

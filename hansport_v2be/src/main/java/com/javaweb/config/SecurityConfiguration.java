@@ -19,9 +19,8 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
-import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
-import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -40,7 +39,8 @@ public class SecurityConfiguration {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
-            CustomAuthenticationEntryPoint customAuthenticationEntryPoint) throws Exception {
+            CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
+            AuthRateLimitFilter authRateLimitFilter) throws Exception {
         http
                 .csrf(c -> c.disable())
                 .cors(Customizer.withDefaults())
@@ -48,13 +48,16 @@ public class SecurityConfiguration {
                         authz -> authz
                                 .requestMatchers("/", "/api/v1/auth/login", "/api/v1/auth/register",
                                         "/api/v1/auth/refresh", "/storage/**", "/api/v1/auth/google").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/**", "/api/v1/files", "/api/v1/settings").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/v1/products", "/api/v1/files").hasRole("ADMIN")
                                 .requestMatchers(HttpMethod.PUT, "/api/v1/products").hasRole("ADMIN")
                                 .requestMatchers(HttpMethod.DELETE, "/api/v1/products/**").hasRole("ADMIN")
                                 .requestMatchers("/api/v1/users", "/api/v1/users/**").hasRole("ADMIN")
+                                .requestMatchers("/api/v1/admin", "/api/v1/admin/**").hasRole("ADMIN")
                                 .requestMatchers(HttpMethod.GET, "/api/v1/orders").hasRole("ADMIN")
                                 .requestMatchers(HttpMethod.PUT, "/api/v1/orders").hasRole("ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/v1/orders/*/send-email").hasRole("ADMIN")
                                 .anyRequest().authenticated())
                 .oauth2ResourceServer((oauth2) -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                         .authenticationEntryPoint(customAuthenticationEntryPoint))
@@ -63,7 +66,8 @@ public class SecurityConfiguration {
 //                        .successHandler(oAuth2LoginSuccessHandler)
 //                )
                 .formLogin(f -> f.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(authRateLimitFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

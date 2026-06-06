@@ -17,7 +17,7 @@ import java.time.Instant;
 public class ResCartDetailDTO {
     private long id;
     private long quantity;
-    private double price;
+    private long price;
     private ProductCartDetail product;
     private Instant createdAt;
     private Instant updatedAt;
@@ -29,7 +29,7 @@ public class ResCartDetailDTO {
     public static class ProductCartDetail {
         private long id;
         private String name;
-        private double price;
+        private long price;
         private String image;
     }
 }
