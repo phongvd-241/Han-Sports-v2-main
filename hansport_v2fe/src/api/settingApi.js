@@ -7,5 +7,13 @@ export const settingApi = {
   
   updateBulkSettings(updates) {
     return axiosClient.put("/api/v1/settings/bulk", updates);
+  },
+
+  getAdminSettings() {
+    return axiosClient.get("/api/v1/admin/settings");
+  },
+
+  updateSiteSettings(settings) {
+    return axiosClient.put("/api/v1/admin/settings/site", settings);
   }
 };

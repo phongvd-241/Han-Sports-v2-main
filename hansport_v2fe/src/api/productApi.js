@@ -16,6 +16,14 @@ export const productApi = {
   remove: (id) =>
     axiosInstance.delete(`/api/v1/products/${id}`),
 
+  importProducts: (file, dryRun = true) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return axiosInstance.post("/api/v1/products/import", formData, {
+      params: { dryRun },
+    });
+  },
+
   uploadFile: (file, folder = "product") => {
     const formData = new FormData();
     formData.append("files", file);

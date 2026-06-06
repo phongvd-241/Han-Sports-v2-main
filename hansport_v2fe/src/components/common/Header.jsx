@@ -20,7 +20,7 @@ export default function Header() {
     { label: "Quần Áo", path: "/shop?category=quan-ao" },
     { label: "Balo - Túi", path: "/shop?category=balo-tui" },
     { label: "Phụ Kiện", path: "/shop?category=phu-kien" },
-  ]);
+  ]).filter((item) => item.active !== false);
 
   const [search, setSearch] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);

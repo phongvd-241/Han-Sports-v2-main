@@ -16,6 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 public class ResCreateProductDTO {
     private long id;
+    private String sku;
     private String name;
     private long price;
 
@@ -27,6 +28,7 @@ public class ResCreateProductDTO {
     private String brand;
     private String target;
     private String category;
+    private boolean active;
     private List<String> images;
 
     private Instant createdAt;

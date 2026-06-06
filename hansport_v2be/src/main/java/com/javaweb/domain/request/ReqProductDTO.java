@@ -13,6 +13,7 @@ import java.util.List;
 @Setter
 public class ReqProductDTO {
     private long id;
+    private String sku;
 
     @NotBlank(message = "Tên sản phẩm không được để trống")
     private String name;
@@ -34,5 +35,6 @@ public class ReqProductDTO {
     private String brand;
     private String target;
     private String category;
+    private Boolean active;
     private List<String> images;
 }

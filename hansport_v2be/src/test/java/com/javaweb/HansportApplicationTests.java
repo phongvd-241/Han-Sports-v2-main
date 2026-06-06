@@ -10,7 +10,9 @@ import com.javaweb.domain.request.ReqChangePasswordDTO;
 import com.javaweb.domain.request.ReqOrderDTO;
 import com.javaweb.domain.request.ReqProductDTO;
 import com.javaweb.domain.request.ReqSettingUpdateDTO;
+import com.javaweb.domain.request.ReqSiteSettingsDTO;
 import com.javaweb.domain.response.ResLoginDTO;
+import com.javaweb.domain.response.product.ResProductImportDTO;
 import com.javaweb.domain.response.role.ResRoleDTO;
 import com.javaweb.repository.OrderRepository;
 import com.javaweb.repository.ProductImageRepository;
@@ -23,11 +25,16 @@ import com.javaweb.service.EmailService;
 import com.javaweb.service.FileService;
 import com.javaweb.service.OrderService;
 import com.javaweb.service.ProductService;
+import com.javaweb.service.ProductImportService;
 import com.javaweb.util.SecurityUtil;
 import com.javaweb.util.error.IdInvalidException;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,6 +50,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
+import java.io.ByteArrayOutputStream;
 import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -51,6 +59,7 @@ import java.util.concurrent.Future;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -121,6 +130,9 @@ class HansportApplicationTests {
 
 	@Autowired
 	private ProductService productService;
+
+	@Autowired
+	private ProductImportService productImportService;
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
@@ -299,6 +311,101 @@ class HansportApplicationTests {
 	}
 
 	@Test
+	void settingsRejectUnsupportedKey() {
+		ReqSettingUpdateDTO dto = new ReqSettingUpdateDTO();
+		dto.setSettingKey("UNKNOWN_SETTING");
+		dto.setSettingValue("value");
+
+		Assertions.assertThrows(IdInvalidException.class,
+				() -> appSettingService.updateBulkSettings(List.of(dto)));
+	}
+
+	@Test
+	void bulkSettingsRejectInvalidHeaderNavPath() {
+		ReqSettingUpdateDTO dto = new ReqSettingUpdateDTO();
+		dto.setSettingKey("HEADER_NAV");
+		dto.setSettingValue("""
+				[{"label":"Cửa hàng","path":"shop"}]
+				""");
+
+		Assertions.assertThrows(IdInvalidException.class,
+				() -> appSettingService.updateBulkSettings(List.of(dto)));
+	}
+
+	@Test
+	void adminCanUpdateTypedSiteSettingsAndUserCannot() throws Exception {
+		User user = createUser("settings-user@example.test", "User@123");
+		User admin = userRepository.findByEmail("admin@hansport.local").orElseThrow();
+
+		ReqSiteSettingsDTO settings = siteSettingsRequest();
+
+		mockMvc.perform(put("/api/v1/admin/settings/site")
+						.header("Authorization", "Bearer " + accessTokenFor(user))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(settings)))
+				.andExpect(status().isForbidden());
+
+		mockMvc.perform(put("/api/v1/admin/settings/site")
+						.header("Authorization", "Bearer " + accessTokenFor(admin))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(settings)))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(get("/api/v1/admin/settings")
+						.header("Authorization", "Bearer " + accessTokenFor(admin)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.HOTLINE").value("091 222 3333"))
+				.andExpect(jsonPath("$.data.SHIPPING_FEE").value("25000"));
+	}
+
+	@Test
+	void typedSiteSettingsRejectInvalidPath() {
+		ReqSiteSettingsDTO settings = siteSettingsRequest();
+		settings.getHeaderNav().get(0).setPath("shop");
+
+		Assertions.assertThrows(IdInvalidException.class,
+				() -> appSettingService.updateSiteSettings(settings));
+	}
+
+	@Test
+	void publicSettingsHideInactiveItemsButAdminSettingsKeepThem() throws Exception {
+		User admin = userRepository.findByEmail("admin@hansport.local").orElseThrow();
+		ReqSiteSettingsDTO settings = siteSettingsRequest();
+
+		ReqSiteSettingsDTO.HeroSlideDTO hiddenSlide = new ReqSiteSettingsDTO.HeroSlideDTO();
+		hiddenSlide.setTitle("Banner ẩn");
+		hiddenSlide.setSubtitle("Không hiển thị ngoài public");
+		hiddenSlide.setCta("Xem");
+		hiddenSlide.setCtaLink("/shop");
+		hiddenSlide.setAltText("Banner ẩn");
+		hiddenSlide.setActive(false);
+		settings.setHeroSlides(List.of(settings.getHeroSlides().get(0), hiddenSlide));
+
+		ReqSiteSettingsDTO.NavigationItemDTO hiddenNav = new ReqSiteSettingsDTO.NavigationItemDTO();
+		hiddenNav.setLabel("Menu ẩn");
+		hiddenNav.setPath("/hidden");
+		hiddenNav.setActive(false);
+		settings.setHeaderNav(List.of(settings.getHeaderNav().get(0), hiddenNav));
+
+		appSettingService.updateSiteSettings(settings);
+
+		MvcResult publicResult = mockMvc.perform(get("/api/v1/settings"))
+				.andExpect(status().isOk())
+				.andReturn();
+		var publicData = objectMapper.readTree(publicResult.getResponse().getContentAsString()).get("data");
+		Assertions.assertEquals(1, objectMapper.readTree(publicData.get("HERO_SLIDES").asText()).size());
+		Assertions.assertEquals(1, objectMapper.readTree(publicData.get("HEADER_NAV").asText()).size());
+
+		MvcResult adminResult = mockMvc.perform(get("/api/v1/admin/settings")
+						.header("Authorization", "Bearer " + accessTokenFor(admin)))
+				.andExpect(status().isOk())
+				.andReturn();
+		var adminData = objectMapper.readTree(adminResult.getResponse().getContentAsString()).get("data");
+		Assertions.assertEquals(2, objectMapper.readTree(adminData.get("HERO_SLIDES").asText()).size());
+		Assertions.assertEquals(2, objectMapper.readTree(adminData.get("HEADER_NAV").asText()).size());
+	}
+
+	@Test
 	void uploadRejectsNonImageContent() {
 		MockMultipartFile file = new MockMultipartFile(
 				"files",
@@ -308,6 +415,57 @@ class HansportApplicationTests {
 
 		Assertions.assertThrows(IllegalArgumentException.class,
 				() -> fileService.validateImageFile(file, "product"));
+	}
+
+	@Test
+	void productImportDryRunAndApplyCsvCreatesInactiveProduct() throws Exception {
+		MockMultipartFile file = productImportFile("IMPORT-TEST-001", "Imported CSV Product");
+
+		ResProductImportDTO dryRun = productImportService.importProducts(file, true);
+		Assertions.assertTrue(dryRun.isDryRun());
+		Assertions.assertFalse(dryRun.isApplied());
+		Assertions.assertEquals(1, dryRun.getTotalRows());
+		Assertions.assertEquals(0, dryRun.getErrorRows());
+		Assertions.assertEquals(1, dryRun.getCreatedCount());
+		Assertions.assertTrue(productRepository.findBySku("IMPORT-TEST-001").isEmpty());
+
+		ResProductImportDTO applied = productImportService.importProducts(file, false);
+		Assertions.assertTrue(applied.isApplied());
+		Product imported = productRepository.findBySku("IMPORT-TEST-001").orElseThrow();
+		Assertions.assertEquals("Imported CSV Product", imported.getName());
+		Assertions.assertFalse(imported.isActive());
+		Assertions.assertEquals(1, productImageRepository.findByProductId(imported.getId()).size());
+	}
+
+	@Test
+	void productImportDryRunReadsXlsxPreferredSheet() throws Exception {
+		MockMultipartFile file = productImportXlsxFile("IMPORT-XLSX-001", "Imported XLSX Product");
+
+		ResProductImportDTO dryRun = productImportService.importProducts(file, true);
+
+		Assertions.assertEquals("SanPham_ChuanHoa", dryRun.getMatchedSheet());
+		Assertions.assertEquals(1, dryRun.getTotalRows());
+		Assertions.assertEquals(0, dryRun.getErrorRows());
+		Assertions.assertEquals(1, dryRun.getCreatedCount());
+		Assertions.assertTrue(productRepository.findBySku("IMPORT-XLSX-001").isEmpty());
+	}
+
+	@Test
+	void userCannotImportProductsButAdminCanDryRun() throws Exception {
+		User user = createUser("import-user@example.test", "User@123");
+		User admin = userRepository.findByEmail("admin@hansport.local").orElseThrow();
+
+		mockMvc.perform(multipart("/api/v1/products/import")
+						.file(productImportFile("IMPORT-API-001", "API Import Product"))
+						.param("dryRun", "true")
+						.header("Authorization", "Bearer " + accessTokenFor(user)))
+				.andExpect(status().isForbidden());
+
+		mockMvc.perform(multipart("/api/v1/products/import")
+						.file(productImportFile("IMPORT-API-001", "API Import Product"))
+						.param("dryRun", "true")
+						.header("Authorization", "Bearer " + accessTokenFor(admin)))
+				.andExpect(status().isOk());
 	}
 
 	@Test
@@ -436,6 +594,7 @@ class HansportApplicationTests {
 	private ReqProductDTO productRequest(Product product, List<String> images) {
 		ReqProductDTO req = new ReqProductDTO();
 		req.setId(product.getId());
+		req.setSku(product.getSku());
 		req.setName(product.getName());
 		req.setPrice(product.getPrice());
 		req.setDetailDesc(product.getDetailDesc());
@@ -445,8 +604,98 @@ class HansportApplicationTests {
 		req.setBrand(product.getBrand());
 		req.setTarget(product.getTarget());
 		req.setCategory(product.getCategory());
+		req.setActive(product.isActive());
 		req.setImages(images);
 		return req;
+	}
+
+	private MockMultipartFile productImportFile(String sku, String name) {
+		String csv = """
+				internal_sku_base,product_name,category,brand,current_price_vnd,quantity,publish_status,external_image_urls,short_description,detail_description_draft
+				%s,%s,Vot cau long,Yonex,1200000,0,DRAFT,https://example.test/product.webp,Short import description,Detail import description
+				""".formatted(sku, name);
+		return new MockMultipartFile("file", "products.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
+	}
+
+	private MockMultipartFile productImportXlsxFile(String sku, String name) throws Exception {
+		try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+			Sheet sheet = workbook.createSheet("SanPham_ChuanHoa");
+			Row header = sheet.createRow(0);
+			List<String> headers = List.of(
+					"internal_sku_base",
+					"product_name",
+					"category",
+					"brand",
+					"current_price_vnd",
+					"quantity",
+					"publish_status",
+					"external_image_urls",
+					"short_description",
+					"detail_description_draft"
+			);
+			for (int i = 0; i < headers.size(); i++) {
+				header.createCell(i).setCellValue(headers.get(i));
+			}
+
+			Row row = sheet.createRow(1);
+			List<String> values = List.of(
+					sku,
+					name,
+					"Vot cau long",
+					"Yonex",
+					"1300000",
+					"5",
+					"PUBLISHED",
+					"https://example.test/product-xlsx.webp",
+					"Short xlsx import description",
+					"Detail xlsx import description"
+			);
+			for (int i = 0; i < values.size(); i++) {
+				row.createCell(i).setCellValue(values.get(i));
+			}
+			workbook.write(output);
+			return new MockMultipartFile(
+					"file",
+					"products.xlsx",
+					"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+					output.toByteArray()
+			);
+		}
+	}
+
+	private ReqSiteSettingsDTO siteSettingsRequest() {
+		ReqSiteSettingsDTO settings = new ReqSiteSettingsDTO();
+		settings.setHotline("091 222 3333");
+		settings.setShippingFee(25000L);
+		settings.setFreeShipLimit(600000L);
+		settings.setBrands(List.of("Yonex", "Victor"));
+		settings.setTargets(List.of("Nam", "Nữ"));
+
+		ReqSiteSettingsDTO.HeroSlideDTO slide = new ReqSiteSettingsDTO.HeroSlideDTO();
+		slide.setTitle("Ưu đãi mùa hè");
+		slide.setSubtitle("Trang bị thể thao chính hãng");
+		slide.setCta("Mua ngay");
+		slide.setCtaLink("/shop");
+		slide.setImage("banner.png");
+		slide.setImageFolder("banner");
+		slide.setAltText("Banner ưu đãi mùa hè");
+		slide.setActive(true);
+		settings.setHeroSlides(List.of(slide));
+
+		ReqSiteSettingsDTO.CategoryDTO category = new ReqSiteSettingsDTO.CategoryDTO();
+		category.setName("Vợt cầu lông");
+		category.setIcon("sports_tennis");
+		category.setPath("/shop?category=Vot cau long");
+		category.setColor("bg-brand-blue-light text-brand-blue");
+		category.setActive(true);
+		settings.setCategories(List.of(category));
+
+		ReqSiteSettingsDTO.NavigationItemDTO nav = new ReqSiteSettingsDTO.NavigationItemDTO();
+		nav.setLabel("Cửa hàng");
+		nav.setPath("/shop");
+		nav.setActive(true);
+		settings.setHeaderNav(List.of(nav));
+		return settings;
 	}
 
 	private boolean placeOrderWhenReleased(CountDownLatch start, User user, ReqOrderDTO req) throws InterruptedException {

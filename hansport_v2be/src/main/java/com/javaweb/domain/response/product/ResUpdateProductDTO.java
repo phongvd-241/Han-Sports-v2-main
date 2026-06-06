@@ -19,6 +19,7 @@ import java.util.List;
 @AllArgsConstructor
 public class ResUpdateProductDTO {
     private long id;
+    private String sku;
     private String name;
     private long price;
 
@@ -30,6 +31,7 @@ public class ResUpdateProductDTO {
     private String brand;
     private String target;
     private String category;
+    private boolean active;
     private List<String> images;
 
     private Instant updatedAt;

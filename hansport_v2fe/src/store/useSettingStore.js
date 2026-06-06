@@ -39,5 +39,14 @@ export const useSettingStore = create((set, get) => ({
     } catch (e) {
       console.error(e);
     }
+  },
+
+  refreshAdminSettings: async () => {
+    try {
+      const res = await settingApi.getAdminSettings();
+      set({ settings: res.data?.data || res.data || {} });
+    } catch (e) {
+      console.error(e);
+    }
   }
 }));

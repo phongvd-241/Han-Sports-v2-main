@@ -4,8 +4,10 @@ import com.javaweb.domain.Product;
 import com.javaweb.domain.request.ReqProductDTO;
 import com.javaweb.domain.response.ResultPaginationDTO;
 import com.javaweb.domain.response.product.ResCreateProductDTO;
+import com.javaweb.domain.response.product.ResProductImportDTO;
 import com.javaweb.domain.response.product.ResProductDTO;
 import com.javaweb.domain.response.product.ResUpdateProductDTO;
+import com.javaweb.service.ProductImportService;
 import com.javaweb.service.ProductService;
 import com.javaweb.util.annotation.ApiMessage;
 import com.javaweb.util.error.IdInvalidException;
@@ -14,15 +16,23 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/v1")
 public class ProductController {
     private final ProductService productService;
-    public ProductController(ProductService productService) {
+    private final ProductImportService productImportService;
+
+    public ProductController(ProductService productService, ProductImportService productImportService) {
         this.productService = productService;
+        this.productImportService = productImportService;
     }
 
     @PostMapping("/products")
@@ -38,6 +48,14 @@ public class ProductController {
             throw new IdInvalidException("Không có sản phẩm");
         }
         return ResponseEntity.ok().body(this.productService.handleUpdateProduct(product));
+    }
+
+    @PostMapping(value = "/products/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ApiMessage("import products from excel or csv")
+    public ResponseEntity<ResProductImportDTO> importProducts(@RequestParam("file") MultipartFile file,
+                                                              @RequestParam(name = "dryRun", defaultValue = "true") boolean dryRun)
+            throws IOException {
+        return ResponseEntity.ok(this.productImportService.importProducts(file, dryRun));
     }
 
     @DeleteMapping("/products/{id}")
@@ -63,9 +81,16 @@ public class ProductController {
     @GetMapping("/products")
     @ApiMessage("get all products")
     public ResponseEntity<ResultPaginationDTO> getAllProducts(@Filter Specification<Product> spec,
-                                                              Pageable pageable){
-        return ResponseEntity.status(HttpStatus.OK).body(this.productService.fetchAllProducts(spec, pageable));
+                                                              Pageable pageable,
+                                                              @RequestParam(name = "includeInactive", defaultValue = "false") boolean includeInactive,
+                                                              Authentication authentication){
+        boolean canIncludeInactive = includeInactive && isAdmin(authentication);
+        return ResponseEntity.status(HttpStatus.OK).body(this.productService.fetchAllProducts(spec, pageable, canIncludeInactive));
     }
 
+    private boolean isAdmin(Authentication authentication) {
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+    }
 
 }

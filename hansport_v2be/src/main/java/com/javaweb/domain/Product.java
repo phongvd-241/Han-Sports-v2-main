@@ -22,6 +22,9 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
+    @Column(unique = true, length = 100)
+    private String sku;
+
     @NotNull
     @NotEmpty(message = "Tên sản phẩm không được để trống")
     private String name;
@@ -46,6 +49,7 @@ public class Product {
     private String brand;
     private String target;
     private String category;
+    private boolean active = true;
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductImage> images;

@@ -14,6 +14,8 @@ import java.util.Optional;
 public interface ProductRepository extends JpaRepository<Product,Long>, JpaSpecificationExecutor<Product> {
     boolean existsByName(String name);
     Optional<Product> findByName(String name);
+    Optional<Product> findBySku(String sku);
+    boolean existsBySku(String sku);
     long countByQuantityLessThanEqual(long quantity);
 
     @Modifying(flushAutomatically = true)

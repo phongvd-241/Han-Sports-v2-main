@@ -58,8 +58,8 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState("all");
   const { h, m, s } = useCountdown(8);
 
-  const HERO_SLIDES = getSetting("HERO_SLIDES", []);
-  const CATEGORIES = getSetting("CATEGORIES", []);
+  const HERO_SLIDES = getSetting("HERO_SLIDES", []).filter((slide) => slide.active !== false);
+  const CATEGORIES = getSetting("CATEGORIES", []).filter((category) => category.active !== false);
 
   const fetchProducts = useCallback(() => {
     setLoading(true);
@@ -90,6 +90,10 @@ export default function HomePage() {
     const t = setInterval(() => setHeroIdx((i) => (i + 1) % HERO_SLIDES.length), 4000);
     return () => clearInterval(t);
   }, [HERO_SLIDES.length, isPaused]);
+
+  useEffect(() => {
+    if (heroIdx >= HERO_SLIDES.length) setHeroIdx(0);
+  }, [HERO_SLIDES.length, heroIdx]);
 
   const handleAddCart = async (product) => {
     if (!user) { toast.error("Vui lòng đăng nhập để thêm vào giỏ hàng!"); return; }
@@ -140,18 +144,37 @@ export default function HomePage() {
             {HERO_SLIDES.map((slide, i) => {
               const bannerImage = getFirstImage(slide);
               const Content = (
-                <div className="w-full h-full relative overflow-hidden bg-surface-muted">
+                <div className="w-full h-full relative overflow-hidden bg-gradient-to-br from-slate-950 via-brand-blue to-brand-teal">
                   {bannerImage ? (
                     <img
                       src={getImageUrl(bannerImage, slide.imageFolder || "product")}
-                      alt="Banner"
-                      className="w-full h-full object-cover select-none pointer-events-none"
+                      alt={slide.altText || slide.title || "Banner"}
+                      className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-brand-blue-light text-brand-blue/30">
-                      <span className="material-symbols-outlined" style={{ fontSize: 80 }}>image</span>
+                    <div className="absolute inset-0 flex items-center justify-end pr-8 md:pr-20 text-white/10">
+                      <span className="material-symbols-outlined" style={{ fontSize: 160 }}>sports_tennis</span>
                     </div>
                   )}
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
+                  <div className="relative z-10 h-full max-w-[1280px] mx-auto px-5 md:px-8 flex items-center">
+                    <div className="max-w-xl text-white">
+                      <p className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-xs md:text-sm font-bold backdrop-blur-sm mb-4">
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>verified</span>
+                        HAN SPORTS
+                      </p>
+                      <h1 className="text-3xl md:text-5xl lg:text-6xl font-black leading-tight">
+                        {slide.title || "Trang bị thể thao chính hãng"}
+                      </h1>
+                      <p className="mt-4 text-sm md:text-lg text-white/80 leading-relaxed max-w-lg">
+                        {slide.subtitle || "Sản phẩm cầu lông và thể thao chất lượng cho luyện tập, thi đấu và phong cách sống năng động."}
+                      </p>
+                      <div className="mt-6 inline-flex items-center gap-2 bg-white text-text-primary rounded-xl px-5 py-3 text-sm md:text-base font-extrabold shadow-lg">
+                        {slide.cta || "Mua ngay"}
+                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_forward</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               );
 

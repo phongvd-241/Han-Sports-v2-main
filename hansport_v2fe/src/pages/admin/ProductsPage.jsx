@@ -8,13 +8,14 @@ import ConfirmDialog from "../../components/admin/ConfirmDialog";
 import DataTable from "../../components/admin/DataTable";
 import FormModal from "../../components/admin/FormModal";
 import IconButton from "../../components/admin/IconButton";
+import ProductImportPanel from "../../components/admin/ProductImportPanel";
 import { useSettingStore } from "../../store/useSettingStore";
 import { getImageUrl, formatVND } from "../../utils/constants";
 import { notifySync, syncEvent } from "../../utils/sync";
 
 const EMPTY_FORM = {
-  name: "", price: "", quantity: "", brand: "", target: "", category: "",
-  shortDesc: "", detailDesc: "", images: [], image: "",
+  sku: "", name: "", price: "", quantity: "", brand: "", target: "", category: "",
+  shortDesc: "", detailDesc: "", active: true, images: [], image: "",
 };
 
 const TARGETS = ["Nam", "Nữ", "Unisex", "Trẻ em"];
@@ -68,7 +69,7 @@ export default function ProductsPage() {
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { page, size: 10 };
+      const params = { page, size: 10, includeInactive: true };
       if (search) params.filter = `name~'${search}'`;
       const res = await productApi.getAll(params);
       const data = res.data?.data;
@@ -85,9 +86,10 @@ export default function ProductsPage() {
   const openEdit = (p) => {
     setSelectedProduct(p);
     setForm({
+      sku: p.sku || "",
       name: p.name || "", price: String(p.price || ""), quantity: String(p.quantity || ""),
       brand: p.brand || "", target: p.target || "", category: p.category || "",
-      shortDesc: p.shortDesc || "", detailDesc: p.detailDesc || "",
+      shortDesc: p.shortDesc || "", detailDesc: p.detailDesc || "", active: p.active ?? true,
       images: p.images ? p.images.map((it) => (typeof it === "string" ? it : (it.imageUrl || it))) : [],
       image: p.image || (Array.isArray(p.images) && p.images.length ? (typeof p.images[0] === "string" ? p.images[0] : (p.images[0].imageUrl || p.images[0])) : ""),
     });
@@ -100,6 +102,7 @@ export default function ProductsPage() {
   const handleReset = () => {
     if (!selectedProduct) return;
     setForm({
+      sku: selectedProduct.sku || "",
       name: selectedProduct.name || "",
       price: String(selectedProduct.price || ""),
       quantity: String(selectedProduct.quantity || ""),
@@ -108,6 +111,7 @@ export default function ProductsPage() {
       category: selectedProduct.category || "",
       shortDesc: selectedProduct.shortDesc || "",
       detailDesc: selectedProduct.detailDesc || "",
+      active: selectedProduct.active ?? true,
       images: selectedProduct.images ? selectedProduct.images.map((it) => (typeof it === "string" ? it : (it.imageUrl || it))) : [],
       image: selectedProduct.image || (Array.isArray(selectedProduct.images) && selectedProduct.images.length ? (typeof selectedProduct.images[0] === "string" ? selectedProduct.images[0] : (selectedProduct.images[0].imageUrl || selectedProduct.images[0])) : ""),
     });
@@ -230,6 +234,13 @@ export default function ProductsPage() {
         </div>
       </AdminToolbar>
 
+      <ProductImportPanel
+        onImported={() => {
+          fetchProducts();
+          notifySync(syncEvent.PRODUCT_UPDATED);
+        }}
+      />
+
       <DataTable
         columns={PRODUCT_COLUMNS}
         loading={loading}
@@ -253,7 +264,9 @@ export default function ProductsPage() {
             </td>
             <td className="px-4 py-3">
               <p className="font-semibold text-text-primary line-clamp-1">{p.name}</p>
+              {p.sku && <p className="text-[11px] text-text-muted font-mono mt-0.5">{p.sku}</p>}
               {p.target && <p className="text-xs text-text-muted mt-0.5">{p.target}</p>}
+              {p.active === false && <span className="badge-danger mt-1 inline-flex">Hidden</span>}
             </td>
             <td className="px-4 py-3">
               {p.category ? <span className="px-2 py-1 bg-surface-muted rounded text-[10px] font-bold uppercase">{p.category}</span> : <span className="text-text-muted">-</span>}
@@ -291,6 +304,11 @@ export default function ProductsPage() {
                   <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
                     placeholder="Vợt cầu lông Yonex..." className="input-field" />
                 </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-text-secondary mb-2">SKU</label>
+                  <input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })}
+                    placeholder="SHOPVNB-VNB026679" className="input-field font-mono" />
+                </div>
                 {/* Price */}
                 <div>
                   <label className="block text-sm font-semibold text-text-secondary mb-2">Giá (VNĐ) *</label>
@@ -326,6 +344,18 @@ export default function ProductsPage() {
                     <option value="">-- Chọn đối tượng --</option>
                     {TARGETS.map((t) => <option key={t} value={t}>{t}</option>)}
                   </select>
+                </div>
+                <div className="md:col-span-2 flex items-center justify-between rounded-xl border border-surface-border px-4 py-3 bg-surface-soft">
+                  <div>
+                    <p className="text-sm font-semibold text-text-secondary">Visible product</p>
+                    <p className="text-xs text-text-muted">Turn off for DRAFT rows imported from Excel/CSV.</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={form.active ?? true}
+                    onChange={(e) => setForm({ ...form, active: e.target.checked })}
+                    className="h-5 w-5 accent-brand-blue"
+                  />
                 </div>
                 {/* Short Desc */}
                 <div className="md:col-span-2">

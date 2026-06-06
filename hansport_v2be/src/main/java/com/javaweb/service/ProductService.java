@@ -44,6 +44,10 @@ public class ProductService {
 
     @Transactional
     public ResCreateProductDTO handleSaveProduct(ReqProductDTO req) throws IdInvalidException {
+        String sku = normalizeSku(req.getSku());
+        if (sku != null && this.productRepository.existsBySku(sku)) {
+            throw new IdInvalidException("SKU da ton tai");
+        }
         if (this.productRepository.existsByName(req.getName())) {
             throw new IdInvalidException("Sản phẩm đã tồn tại");
         }
@@ -62,6 +66,14 @@ public class ProductService {
         Optional<Product> sameName = this.productRepository.findByName(product.getName());
         if (sameName.isPresent() && sameName.get().getId() != currentProduct.getId()) {
             throw new IdInvalidException("Tên sản phẩm đã tồn tại");
+        }
+
+        String sku = normalizeSku(product.getSku());
+        if (sku != null) {
+            Optional<Product> sameSku = this.productRepository.findBySku(sku);
+            if (sameSku.isPresent() && sameSku.get().getId() != currentProduct.getId()) {
+                throw new IdInvalidException("SKU da ton tai");
+            }
         }
 
         this.applyProductRequest(currentProduct, product);
@@ -88,7 +100,13 @@ public class ProductService {
     }
 
     public ResultPaginationDTO fetchAllProducts(Specification<Product> spec, Pageable pageable){
-        Page<Product> products = this.productRepository.findAll(spec, pageable);
+        return fetchAllProducts(spec, pageable, false);
+    }
+
+    public ResultPaginationDTO fetchAllProducts(Specification<Product> spec, Pageable pageable, boolean includeInactive){
+        Specification<Product> activeSpec = (root, query, criteriaBuilder) -> criteriaBuilder.isTrue(root.get("active"));
+        Specification<Product> finalSpec = includeInactive ? spec : (spec == null ? activeSpec : spec.and(activeSpec));
+        Page<Product> products = this.productRepository.findAll(finalSpec, pageable);
         ResultPaginationDTO resultPaginationDTO = new ResultPaginationDTO();
         ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
 
@@ -116,6 +134,7 @@ public class ProductService {
     }
 
     private void applyProductRequest(Product product, ReqProductDTO req) {
+        product.setSku(normalizeSku(req.getSku()));
         product.setName(req.getName());
         product.setPrice(req.getPrice());
         product.setShortDesc(req.getShortDesc());
@@ -125,7 +144,15 @@ public class ProductService {
         product.setCategory(req.getCategory());
         product.setQuantity(req.getQuantity());
         product.setSold(req.getSold());
+        product.setActive(req.getActive() == null || req.getActive());
 
+    }
+
+    private String normalizeSku(String sku) {
+        if (sku == null || sku.isBlank()) {
+            return null;
+        }
+        return sku.trim().toUpperCase();
     }
 
     public List<ProductImage> addImage(List<String> images, Product product){
@@ -198,6 +225,7 @@ public class ProductService {
     public ResCreateProductDTO convertToResCreateProductDTO(Product product) {
         ResCreateProductDTO resCreateProductDTO = new ResCreateProductDTO();
         resCreateProductDTO.setId(product.getId());
+        resCreateProductDTO.setSku(product.getSku());
         resCreateProductDTO.setName(product.getName());
         resCreateProductDTO.setPrice(product.getPrice());
         resCreateProductDTO.setDetailDesc(product.getDetailDesc());
@@ -207,11 +235,14 @@ public class ProductService {
         resCreateProductDTO.setTarget(product.getTarget());
         resCreateProductDTO.setCategory(product.getCategory());
         resCreateProductDTO.setBrand(product.getBrand());
+        resCreateProductDTO.setActive(product.isActive());
 
         List<String> images = new ArrayList<>();
         List<ProductImage> productImages = product.getImages();
-        for(ProductImage productImage : productImages){
-            images.add(productImage.getImageUrl());
+        if (productImages != null) {
+            for(ProductImage productImage : productImages){
+                images.add(productImage.getImageUrl());
+            }
         }
         resCreateProductDTO.setImages(images);
         resCreateProductDTO.setCreatedAt(product.getCreatedAt());
@@ -221,6 +252,7 @@ public class ProductService {
     public ResUpdateProductDTO convertToResUpdateProductDTO(Product product) {
         ResUpdateProductDTO resUpdateProductDTO = new ResUpdateProductDTO();
         resUpdateProductDTO.setId(product.getId());
+        resUpdateProductDTO.setSku(product.getSku());
         resUpdateProductDTO.setName(product.getName());
         resUpdateProductDTO.setPrice(product.getPrice());
         resUpdateProductDTO.setDetailDesc(product.getDetailDesc());
@@ -230,11 +262,14 @@ public class ProductService {
         resUpdateProductDTO.setTarget(product.getTarget());
         resUpdateProductDTO.setCategory(product.getCategory());
         resUpdateProductDTO.setBrand(product.getBrand());
+        resUpdateProductDTO.setActive(product.isActive());
 
         List<String> images = new ArrayList<>();
         List<ProductImage> productImages = product.getImages();
-        for(ProductImage productImage : productImages){
-            images.add(productImage.getImageUrl());
+        if (productImages != null) {
+            for(ProductImage productImage : productImages){
+                images.add(productImage.getImageUrl());
+            }
         }
         resUpdateProductDTO.setImages(images);
         resUpdateProductDTO.setUpdatedAt(product.getUpdatedAt());
@@ -244,6 +279,7 @@ public class ProductService {
     public ResProductDTO convertToResProductDTO(Product product) {
         ResProductDTO resProductDTO = new ResProductDTO();
         resProductDTO.setId(product.getId());
+        resProductDTO.setSku(product.getSku());
         resProductDTO.setName(product.getName());
         resProductDTO.setPrice(product.getPrice());
         resProductDTO.setDetailDesc(product.getDetailDesc());
@@ -253,11 +289,14 @@ public class ProductService {
         resProductDTO.setTarget(product.getTarget());
         resProductDTO.setCategory(product.getCategory());
         resProductDTO.setBrand(product.getBrand());
+        resProductDTO.setActive(product.isActive());
 
         List<String> images = new ArrayList<>();
         List<ProductImage> productImages = product.getImages();
-        for(ProductImage productImage : productImages){
-            images.add(productImage.getImageUrl());
+        if (productImages != null) {
+            for(ProductImage productImage : productImages){
+                images.add(productImage.getImageUrl());
+            }
         }
         resProductDTO.setImages(images);
         resProductDTO.setCreatedAt(product.getCreatedAt());

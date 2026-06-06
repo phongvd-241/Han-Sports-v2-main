@@ -19,6 +19,7 @@ import java.util.List;
 @AllArgsConstructor
 public class ResProductDTO {
     private long id;
+    private String sku;
     private String name;
     private long price;
 
@@ -31,6 +32,7 @@ public class ResProductDTO {
     private String brand;
     private String target;
     private String category;
+    private boolean active;
     private List<String> images;
 
     private Instant createdAt;
