@@ -485,6 +485,57 @@ class HansportApplicationTests {
 	}
 
 	@Test
+	void productSearchMatchesSkuBrandAndCategory() throws Exception {
+		Product product = createProduct("Searchable Product", 8);
+		product.setSku("SEARCH-SKU-2026");
+		product.setBrand("SearchBrand");
+		product.setCategory("SearchCategory");
+		product.setTarget("Nam");
+		product.setPrice(2_500_000);
+		productRepository.save(product);
+
+		mockMvc.perform(get("/api/v1/products").param("q", "search-sku-2026"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.result[0].id").value(product.getId()));
+
+		mockMvc.perform(get("/api/v1/products").param("q", "searchbrand"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.result[0].id").value(product.getId()));
+
+		mockMvc.perform(get("/api/v1/products").param("q", "searchcategory"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.result[0].id").value(product.getId()));
+
+		mockMvc.perform(get("/api/v1/products")
+						.param("brand", "searchbrand")
+						.param("target", "nam")
+						.param("minPrice", "2000000")
+						.param("maxPrice", "3000000"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.meta.total").value(1))
+				.andExpect(jsonPath("$.data.result[0].id").value(product.getId()));
+	}
+
+	@Test
+	void productImageOrderIsPreserved() throws Exception {
+		Product product = createProduct("Ordered Images Product", 5);
+		ReqProductDTO request = productRequest(product, List.of("main-image.png", "side-image.png", "detail-image.png"));
+
+		productService.handleUpdateProduct(request);
+
+		Assertions.assertEquals(
+				List.of("main-image.png", "side-image.png", "detail-image.png"),
+				productService.fetchProductById(product.getId()).getImages());
+
+		request.setImages(List.of("detail-image.png", "main-image.png", "side-image.png"));
+		productService.handleUpdateProduct(request);
+
+		Assertions.assertEquals(
+				List.of("detail-image.png", "main-image.png", "side-image.png"),
+				productService.fetchProductById(product.getId()).getImages());
+	}
+
+	@Test
 	void changePasswordRequiresCurrentPasswordAndRevokesRefreshToken() throws Exception {
 		User user = createUser("password-user@example.test", "OldPass@123");
 		user.setRefreshToken("stored-hash");

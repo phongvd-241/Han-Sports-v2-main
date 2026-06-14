@@ -43,8 +43,14 @@ export default function ShopPage() {
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { page, size: 12 };
-      if (q) params.filter = `name~'${q}'`;
+      const params = { page, size: 12, sort: "id,asc" };
+      if (q) params.q = q;
+      if (brand) params.brand = brand;
+      if (target) params.target = target;
+      if (selectedPrice) {
+        params.minPrice = selectedPrice.min;
+        params.maxPrice = selectedPrice.max;
+      }
       const res = await productApi.getAll(params);
       const data = res.data?.data || res.data;
       setProducts(data?.result || []);
@@ -55,7 +61,7 @@ export default function ShopPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, q]);
+  }, [page, q, brand, target, selectedPrice]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
@@ -75,6 +81,14 @@ export default function ShopPage() {
     setSearchParams(next);
   };
 
+  const goToPage = (nextPage) => {
+    const safePage = Math.max(0, Math.min(nextPage, totalPages - 1));
+    const next = new URLSearchParams(searchParams);
+    next.set("page", String(safePage));
+    setSearchParams(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleAddCart = async (product) => {
     if (!user) { toast.error("Vui lòng đăng nhập để thêm vào giỏ hàng!"); return; }
     try {
@@ -87,13 +101,14 @@ export default function ShopPage() {
     }
   };
 
-  // Filter products client-side (brand/target/price)
-  const filtered = products.filter((p) => {
-    if (brand && p.brand !== brand) return false;
-    if (target && p.target !== target) return false;
-    if (selectedPrice && (p.price < selectedPrice.min || p.price > selectedPrice.max)) return false;
-    return true;
-  });
+  const firstVisiblePage = Math.max(0, Math.min(
+    page - Math.floor(7 / 2),
+    Math.max(0, totalPages - 7),
+  ));
+  const visiblePages = Array.from(
+    { length: Math.min(totalPages, 7) },
+    (_, index) => firstVisiblePage + index,
+  );
 
   const Sidebar = () => (
     <aside className="w-full">
@@ -103,7 +118,6 @@ export default function ShopPage() {
           Bộ lọc sản phẩm
         </h3>
 
-        {/* Brand filter */}
         <div className="mb-5">
           <p className="text-sm font-semibold text-text-secondary mb-3 uppercase tracking-wide">Thương hiệu</p>
           <div className="flex flex-wrap gap-2">
@@ -120,7 +134,6 @@ export default function ShopPage() {
           </div>
         </div>
 
-        {/* Target filter */}
         <div className="mb-5">
           <p className="text-sm font-semibold text-text-secondary mb-3 uppercase tracking-wide">Đối tượng</p>
           <div className="flex flex-wrap gap-2">
@@ -137,7 +150,6 @@ export default function ShopPage() {
           </div>
         </div>
 
-        {/* Price range */}
         <div>
           <p className="text-sm font-semibold text-text-secondary mb-3 uppercase tracking-wide">Khoảng giá</p>
           <div className="flex flex-col gap-2">
@@ -171,7 +183,6 @@ export default function ShopPage() {
     <div className="min-h-screen bg-surface-soft">
 
 
-      {/* Page Header */}
       <div className="bg-white border-b border-surface-border">
         <div className="max-w-[1280px] mx-auto px-4 md:px-6 py-5">
           <div className="flex items-center justify-between">
@@ -185,7 +196,6 @@ export default function ShopPage() {
                 </p>
               )}
             </div>
-            {/* Mobile filter toggle */}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="md:hidden flex items-center gap-2 px-4 py-2 rounded-lg border border-surface-border text-text-secondary hover:border-brand-blue hover:text-brand-blue transition-all text-sm font-semibold"
@@ -194,19 +204,16 @@ export default function ShopPage() {
               Bộ lọc
             </button>
           </div>
-          {/* Mobile sidebar */}
           {sidebarOpen && <div className="md:hidden mt-4"><Sidebar /></div>}
         </div>
       </div>
 
       <div className="max-w-[1280px] mx-auto px-4 md:px-6 py-8">
         <div className="flex gap-6">
-          {/* Desktop Sidebar */}
           <div className="hidden md:block w-64 flex-shrink-0">
             <Sidebar />
           </div>
 
-          {/* Product Grid */}
           <div className="flex-1 min-w-0">
             {loading ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -214,7 +221,7 @@ export default function ShopPage() {
                   <div key={i} className="skeleton h-72 rounded-xl" />
                 ))}
               </div>
-            ) : filtered.length === 0 ? (
+            ) : products.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="w-20 h-20 rounded-full bg-surface-muted flex items-center justify-center mb-4">
                   <span className="material-symbols-outlined text-text-muted" style={{ fontSize: 40 }}>search_off</span>
@@ -226,26 +233,24 @@ export default function ShopPage() {
             ) : (
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {filtered.map((p) => (
+                  {products.map((p) => (
                     <ProductCard key={p.id} product={p} onAddCart={handleAddCart} />
                   ))}
                 </div>
 
-                {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="mt-10 flex justify-center gap-2">
                     <button
-                      onClick={() => setParam("page", String(page - 1))}
+                      onClick={() => goToPage(page - 1)}
                       disabled={page === 0}
                       className="w-10 h-10 rounded-lg border border-surface-border flex items-center justify-center text-text-secondary hover:border-brand-blue hover:text-brand-blue disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: 20 }}>chevron_left</span>
                     </button>
-                    {[...Array(Math.min(totalPages, 7))].map((_, i) => {
-                      const p_ = i;
+                    {visiblePages.map((p_) => {
                       const isActive = p_ === page;
                       return (
-                        <button key={i} onClick={() => setParam("page", String(p_))}
+                        <button key={p_} onClick={() => goToPage(p_)}
                           className={`w-10 h-10 rounded-lg text-sm font-semibold transition-all ${isActive ? "text-white shadow-blue-glow" : "border border-surface-border text-text-secondary hover:border-brand-blue hover:text-brand-blue"}`}
                           style={isActive ? { background: "linear-gradient(135deg, #16a34a, #1d4ed8)" } : {}}
                         >
@@ -254,7 +259,7 @@ export default function ShopPage() {
                       );
                     })}
                     <button
-                      onClick={() => setParam("page", String(page + 1))}
+                      onClick={() => goToPage(page + 1)}
                       disabled={page >= totalPages - 1}
                       className="w-10 h-10 rounded-lg border border-surface-border flex items-center justify-center text-text-secondary hover:border-brand-blue hover:text-brand-blue disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >

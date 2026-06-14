@@ -17,12 +17,11 @@ export default function ClientLayout() {
     if (initialized.current) return;
     initialized.current = true;
 
-    // Nếu có user persist nhưng không có accessToken → thử refresh session
     const tryRestoreSession = async () => {
       const { accessToken } = useAuthStore.getState();
-      if (accessToken) return; // Đã có token, không cần restore
+      if (accessToken) return;
 
-      if (!user) return; // Không có user persist, bỏ qua
+      if (!user) return;
 
       try {
         const res = await authApi.refresh();
@@ -33,12 +32,10 @@ export default function ClientLayout() {
           setAuth(newToken, freshUser);
         }
       } catch {
-        // Refresh thất bại → xóa session cũ
         clearAuth();
       }
     };
 
-    // Load giỏ hàng nếu đã đăng nhập
     const loadCart = async () => {
       const { accessToken } = useAuthStore.getState();
       if (!accessToken) return;
@@ -47,7 +44,7 @@ export default function ClientLayout() {
         const items = res.data?.data?.cartDetails || res.data?.data || [];
         setCart(items);
       } catch {
-        // Silent fail — giỏ hàng sẽ load lại khi vào trang cart
+        // The cart page retries this request.
       }
     };
 

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import SafeImage from "./SafeImage";
 import { getImageUrl, formatVND, getFirstImage } from "../../utils/constants";
 
 export default function ProductCard({ product, discountPercent, badge, onAddCart }) {
@@ -7,10 +8,11 @@ export default function ProductCard({ product, discountPercent, badge, onAddCart
     ? Math.round(price / (1 - discountPercent / 100))
     : null;
   const isOutOfStock = quantity === 0;
+  const imageVersion = product.updatedAt || product.createdAt || product.id;
+  const imageSrc = getImageUrl(getFirstImage(product), "product", imageVersion);
 
   return (
     <div className="group card relative flex flex-col overflow-hidden">
-      {/* Badges */}
       <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1.5">
         {discountPercent && (
           <span className="badge-danger text-[10px] px-1.5 py-0.5">-{discountPercent}%</span>
@@ -23,24 +25,22 @@ export default function ProductCard({ product, discountPercent, badge, onAddCart
         )}
       </div>
 
-      {/* Image */}
       <Link to={`/products/${id}`} className="block relative overflow-hidden bg-surface-soft" style={{ paddingTop: "100%" }}>
-        {getFirstImage(product) ? (
-          <img
-            src={getImageUrl(getFirstImage(product))}
+        {imageSrc ? (
+          <SafeImage
+            src={imageSrc}
             alt={name}
             className="absolute inset-0 w-full h-full object-contain p-3 transition-transform duration-500 group-hover:scale-110"
+            fallbackClassName="absolute inset-0"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-text-muted">
             <span className="material-symbols-outlined" style={{ fontSize: 56 }}>image_not_supported</span>
           </div>
         )}
-        {/* Hover overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-brand-blue/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </Link>
 
-      {/* Content */}
       <div className="flex flex-col flex-1 p-4">
         {brand && (
           <span className="text-xs font-semibold text-brand-teal uppercase tracking-wide mb-1">{brand}</span>

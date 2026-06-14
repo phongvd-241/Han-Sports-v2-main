@@ -113,7 +113,6 @@ export default function CartPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Cart Items */}
           <div className="lg:col-span-2 flex flex-col gap-4">
             {cartItems.map((item) => {
               const p = item.product || item;
@@ -124,7 +123,6 @@ export default function CartPage() {
 
               return (
                 <div key={item.id} className={`card p-4 flex gap-4 items-center transition-all ${(isUpdating || isRemoving) ? "opacity-60" : "opacity-100"} ${isSelected ? "border-brand-blue/30 bg-brand-blue/[0.02]" : ""}`}>
-                  {/* Checkbox */}
                   <div className="flex-shrink-0 pr-2">
                     <input
                       type="checkbox"
@@ -134,7 +132,6 @@ export default function CartPage() {
                     />
                   </div>
 
-                  {/* Image */}
                   <Link to={`/products/${p.id}`} className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 bg-surface-muted rounded-xl overflow-hidden">
                     {imgUrl ? (
                       <img src={imgUrl} alt={p.name} className="w-full h-full object-contain p-2" />
@@ -145,7 +142,6 @@ export default function CartPage() {
                     )}
                   </Link>
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <Link to={`/products/${p.id}`} className="font-semibold text-text-primary hover:text-brand-blue transition-colors line-clamp-2 text-sm leading-snug">
                       {p.name}
@@ -153,7 +149,6 @@ export default function CartPage() {
                     {p.brand && <p className="text-xs text-brand-teal font-semibold mt-0.5">{p.brand}</p>}
 
                     <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
-                      {/* Quantity Controls */}
                       <div className="flex items-center border border-surface-border rounded-lg overflow-hidden">
                         <button
                           onClick={() => handleQuantityChange(item, -1)}
@@ -181,7 +176,6 @@ export default function CartPage() {
                     </div>
                   </div>
 
-                  {/* Remove */}
                   <button
                     onClick={() => handleRemove(item.id)}
                     disabled={isRemoving || isUpdating}
@@ -202,7 +196,6 @@ export default function CartPage() {
             </Link>
           </div>
 
-          {/* Order Summary */}
           <div className="lg:col-span-1">
             <div className="card p-6 sticky top-24">
               <h3 className="text-title font-bold text-text-primary mb-5">Tóm tắt đơn hàng</h3>
@@ -252,7 +245,6 @@ export default function CartPage() {
                 Đặt hàng ngay
               </button>
 
-              {/* Trust signals */}
               <div className="mt-5 pt-5 border-t border-surface-border grid grid-cols-2 gap-2.5">
                 {[
                   { icon: "lock", text: "Thanh toán an toàn" },

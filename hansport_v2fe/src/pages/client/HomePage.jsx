@@ -17,10 +17,8 @@ function useCountdown(hours) {
     const saved = localStorage.getItem("flashSaleEndTime");
     if (saved) {
       const savedTime = parseInt(saved, 10);
-      // Nếu thời gian đã lưu vẫn còn hiệu lực (chưa hết hạn)
       if (savedTime > Date.now()) return savedTime;
     }
-    // Nếu chưa có hoặc đã hết hạn, tạo mới
     const newEnd = Date.now() + hours * 3600000;
     localStorage.setItem("flashSaleEndTime", newEnd.toString());
     return newEnd;
@@ -63,7 +61,6 @@ export default function HomePage() {
 
   const fetchProducts = useCallback(() => {
     setLoading(true);
-    // Fetch 12 products to fill both Flash Sale (4) and Latest (8) sections
     productApi.getAll({ page: 0, size: 12, sort: "id,desc" })
       .then((res) => setProducts(res.data?.data?.result || []))
       .catch(console.error)
@@ -109,7 +106,6 @@ export default function HomePage() {
     <div className="min-h-screen bg-surface-soft">
 
 
-      {/* ── Hero Banner ── */}
       {HERO_SLIDES.length > 0 && (
         <section
           className="relative overflow-hidden group/hero select-none touch-none"
@@ -194,7 +190,6 @@ export default function HomePage() {
             })}
           </div>
 
-          {/* Navigation Arrows */}
           <button onClick={() => setHeroIdx((i) => (i > 0 ? i - 1 : HERO_SLIDES.length - 1))}
             className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover/hero:opacity-100 transition-opacity hover:bg-white/20">
             <span className="material-symbols-outlined text-white">chevron_left</span>
@@ -204,7 +199,6 @@ export default function HomePage() {
             <span className="material-symbols-outlined text-white">chevron_right</span>
           </button>
 
-          {/* Dots */}
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
             {HERO_SLIDES.map((_, i) => (
               <button key={i} onClick={() => setHeroIdx(i)}
@@ -215,7 +209,6 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* ── Categories ── */}
       <section className="max-w-[1280px] mx-auto px-4 md:px-6 py-12">
         <div className="section-header">
           <h2 className="text-heading font-bold text-text-primary">Danh mục sản phẩm</h2>
@@ -234,7 +227,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Flash Sale ── */}
       <section className="bg-white border-y border-surface-border py-12">
         <div className="max-w-[1280px] mx-auto px-4 md:px-6">
           <div className="flex items-center justify-between mb-8">
@@ -270,14 +262,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── New Products (Tabbed) ── */}
       <section className="max-w-[1280px] mx-auto px-4 md:px-6 py-12">
         <div className="flex items-center gap-3 mb-8">
           <div className="w-1 h-8 bg-gradient-to-b from-brand-green to-brand-blue rounded-full" />
           <h2 className="text-2xl md:text-3xl font-bold text-text-primary uppercase tracking-tight">Sản phẩm mới</h2>
         </div>
 
-        {/* Category Tabs */}
         <div className="flex flex-wrap border border-surface-border bg-white rounded-t-xl overflow-hidden shadow-sm">
           <button
             onClick={() => setActiveTab("all")}
@@ -296,12 +286,9 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* Product Grid Container */}
         <div className="p-4 md:p-6 bg-white border-x-4 border-b-4 border-brand-blue/30 rounded-b-xl relative group/grid shadow-md">
-          {/* Decorative top line to bridge the border */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-brand-blue/30" />
 
-          {/* Navigation Arrows */}
           <button
             onClick={() => {
               const el = document.getElementById("tabbed-product-scroll");
@@ -355,7 +342,6 @@ export default function HomePage() {
                       <p className="text-brand-blue font-black text-base md:text-lg">{formatVND(p.price)}</p>
                     </div>
 
-                    {/* Floating Add to Cart */}
                     <button
                       onClick={() => handleAddCart(p)}
                       className="mt-4 w-full py-3 bg-gradient-to-r from-brand-green to-brand-blue text-white text-xs font-black rounded-xl opacity-0 group-hover/card:opacity-100 transition-all transform translate-y-4 group-hover/card:translate-y-0 shadow-lg shadow-brand-blue/20 flex items-center justify-center gap-2 active:scale-95"
@@ -376,7 +362,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Trust Badges ── */}
       <section className="bg-gradient-to-r from-brand-green to-brand-blue py-14">
         <div className="max-w-[1280px] mx-auto px-4 md:px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-white text-center">
           {[

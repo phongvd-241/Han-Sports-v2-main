@@ -26,18 +26,16 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final CartRepository cartRepository;
-    private final CartDetailRepository cartDetailRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final ProductRepository productRepository;
     private final EmailService emailService;
 
     public OrderService(OrderRepository orderRepository, UserRepository userRepository, CartRepository cartRepository,
-                        CartDetailRepository cartDetailRepository, OrderDetailRepository orderDetailRepository,
+                        OrderDetailRepository orderDetailRepository,
                         ProductRepository productRepository, EmailService emailService) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.cartRepository = cartRepository;
-        this.cartDetailRepository = cartDetailRepository;
         this.orderDetailRepository = orderDetailRepository;
         this.productRepository = productRepository;
         this.emailService = emailService;
@@ -45,7 +43,6 @@ public class OrderService {
 
     @Transactional
     public ResOrderDTO placeOrder(String email, ReqOrderDTO reqOrder) throws IdInvalidException {
-        //get cart
         User currentUser = this.userRepository.findByEmail(email)
                 .orElseThrow(() -> new IdInvalidException("Người dùng không tồn tại"));
         Cart cart = this.cartRepository.findByUser(currentUser)
@@ -56,7 +53,6 @@ public class OrderService {
             throw new IdInvalidException("Giỏ hàng đang trống");
         }
 
-        // Lọc ra các sản phẩm được chọn để thanh toán
         List<CartDetail> orderItems = allCartDetails.stream()
                 .filter(cd -> reqOrder.getCartDetailIds().contains(cd.getId()))
                 .collect(Collectors.toList());
@@ -98,12 +94,10 @@ public class OrderService {
             orderDetail.setQuantity(cartDetail.getQuantity());
             savedOrderDetails.add(this.orderDetailRepository.save(orderDetail));
             
-            // Xóa khỏi danh sách để orphanRemoval tự động xóa trong DB
             allCartDetails.remove(cartDetail);
         }
         order.setOrderDetails(savedOrderDetails);
 
-        // Cập nhật lại số lượng loại sản phẩm trong giỏ hàng (sum)
         if (!allCartDetails.isEmpty()) {
             cart.setSum(allCartDetails.size());
             this.cartRepository.save(cart);
@@ -264,7 +258,6 @@ public class OrderService {
         resOrderDetailDTO.setQuantity(orderDetail.getQuantity());
         resOrderDetailDTO.setPrice(orderDetail.getPrice());
 
-        //product order
         ResOrderDetailDTO.ProductOrderDetail productCartDetail = new ResOrderDetailDTO.ProductOrderDetail();
         productCartDetail.setId(orderDetail.getProduct().getId());
         productCartDetail.setName(orderDetail.getProduct().getName());

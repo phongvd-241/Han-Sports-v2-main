@@ -1,14 +1,17 @@
 export const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
-// Logo assets served by backend FileController.
 export const LOGO_CIRCLE = `${API_BASE_URL}/api/v1/files?fileName=z7807481637936_0284e7519d48b7526c7093c9e370821b.jpg&folder=logo`;
 export const LOGO_TEXT = `${API_BASE_URL}/api/v1/files?fileName=z7807481884127_d5f1ae90f114ea8f06f081653cf869fc.jpg&folder=logo`;
 
-// Utility functions.
-export function getImageUrl(fileName, folder = "product") {
+export function getImageUrl(fileName, folder = "product", version = null) {
   if (!fileName) return null;
   if (fileName.startsWith("http")) return fileName;
-  return `${API_BASE_URL}/api/v1/files?fileName=${encodeURIComponent(fileName)}&folder=${encodeURIComponent(folder)}`;
+  const params = new URLSearchParams({
+    fileName,
+    folder,
+  });
+  if (version) params.set("v", String(version));
+  return `${API_BASE_URL}/api/v1/files?${params.toString()}`;
 }
 
 export function getFirstImage(item) {

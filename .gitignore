@@ -12,3 +12,6 @@ hansport_v2fe/.vite/
 .env
 .env.local
 backups/
+.playwright-mcp/
+outputs/
+tmp/

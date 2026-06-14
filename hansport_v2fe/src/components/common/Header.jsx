@@ -30,14 +30,12 @@ export default function Header() {
   
   const HOTLINE = getSetting("HOTLINE", "090 123 4567");
 
-  // Shadow on scroll
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 4);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close user menu on outside click
   useEffect(() => {
     const handler = (e) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
@@ -69,7 +67,6 @@ export default function Header() {
         scrolled ? "shadow-[0_2px_20px_rgb(0_0_0/0.08)]" : "shadow-navbar"
       }`}
     >
-      {/* ── Top Bar ── */}
       <div className="hidden md:block bg-gradient-to-r from-brand-green to-brand-blue text-white text-xs">
         <div className="max-w-[1280px] mx-auto px-6 h-9 flex items-center justify-between">
           <div className="flex items-center gap-1.5 font-medium">
@@ -91,11 +88,9 @@ export default function Header() {
         </div>
       </div>
 
-      {/* ── Main Header ── */}
       <div className="border-b border-surface-border">
         <div className="max-w-[1280px] mx-auto px-4 md:px-6 py-3.5 flex items-center gap-4">
 
-          {/* Logo */}
           <Link to="/" className="flex-shrink-0 flex items-center gap-2.5">
             <img
               src={LOGO_CIRCLE}
@@ -111,11 +106,9 @@ export default function Header() {
               onError={(e) => { e.target.style.display = "none"; }}
               onLoad={(e) => { e.target.style.display = "block"; e.target.previousSibling.style.display = "none"; }}
             />
-            {/* Fallback text logo */}
             <span className="md:hidden font-extrabold text-lg gradient-text">HAN SPORTS</span>
           </Link>
 
-          {/* Search Bar */}
           <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl relative">
             <input
               value={search}
@@ -133,9 +126,7 @@ export default function Header() {
             </button>
           </form>
 
-          {/* Actions */}
           <div className="flex items-center gap-1 ml-auto">
-            {/* Mobile search */}
             <button
               className="md:hidden p-2 text-text-secondary hover:text-brand-blue rounded-lg hover:bg-brand-blue-light transition-all"
               onClick={() => navigate("/shop")}
@@ -143,12 +134,10 @@ export default function Header() {
               <span className="material-symbols-outlined">search</span>
             </button>
 
-            {/* Wishlist placeholder */}
             <button className="hidden md:flex p-2 text-text-secondary hover:text-brand-blue rounded-lg hover:bg-brand-blue-light transition-all">
               <span className="material-symbols-outlined">favorite_border</span>
             </button>
 
-            {/* Cart */}
             <Link
               to="/cart"
               className="relative p-2 text-text-secondary hover:text-brand-blue rounded-lg hover:bg-brand-blue-light transition-all"
@@ -163,7 +152,6 @@ export default function Header() {
               )}
             </Link>
 
-            {/* User Menu */}
             {!user ? (
               <Link to="/login" className="hidden md:flex btn-primary py-2 px-5 text-sm">
                 Đăng nhập
@@ -214,7 +202,6 @@ export default function Header() {
               </div>
             )}
 
-            {/* Mobile hamburger */}
             <button
               className="md:hidden p-2 text-text-secondary hover:text-brand-blue rounded-lg hover:bg-brand-blue-light transition-all"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -225,7 +212,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* ── Category Nav Bar ── */}
       <div className="hidden md:block border-b border-surface-border bg-white">
         <nav className="max-w-[1280px] mx-auto px-6 h-12 flex items-center gap-1">
           {NAV_CATEGORIES.map(({ label, path }) => {
@@ -254,7 +240,6 @@ export default function Header() {
         </nav>
       </div>
 
-      {/* ── Mobile Dropdown ── */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-surface-border bg-white shadow-lg animate-fade-up">
           <div className="px-4 py-4 space-y-1">

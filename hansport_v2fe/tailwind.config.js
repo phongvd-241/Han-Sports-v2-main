@@ -46,7 +46,7 @@ export default {
         "footer-gradient":   "linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%)",
       },
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
+        sans: ["Noto Sans", "Segoe UI", "Arial", "sans-serif"],
       },
       fontSize: {
         "hero":    ["3.5rem", { lineHeight: "1.1", fontWeight: "800", letterSpacing: "-0.02em" }],

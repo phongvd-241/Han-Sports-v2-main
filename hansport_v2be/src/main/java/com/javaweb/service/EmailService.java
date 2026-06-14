@@ -25,7 +25,6 @@ public class EmailService {
 
     public void sendEmailSync(String to, String subject, String content, boolean isMultipart,
                               boolean isHtml) {
-        // Prepare message using a Spring helper
         MimeMessage mimeMessage = this.javaMailSender.createMimeMessage();
         try {
             MimeMessageHelper message = new MimeMessageHelper(mimeMessage,

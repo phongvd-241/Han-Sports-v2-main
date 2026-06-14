@@ -4,26 +4,18 @@ import { API_BASE_URL } from "../utils/constants";
 
 const BASE_URL = API_BASE_URL;
 
-// Axios instance chính — dùng cho mọi request đã xác thực
+// Do not force a default Content-Type. Axios must detect JSON and FormData itself.
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true, // Tự động gửi refresh_token cookie
-  headers: {
-    "Content-Type": "application/json",
-  },
+  withCredentials: true,
 });
 
-// Axios instance phụ — KHÔNG có interceptor để tránh vòng lặp vô hạn
+// Public instance without refresh interception to avoid an infinite refresh loop.
 const axiosPublic = axios.create({
   baseURL: BASE_URL,
   withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
-// === REQUEST INTERCEPTOR ===
-// Tự động gắn accessToken vào mọi request
 axiosInstance.interceptors.request.use(
   (config) => {
     const { accessToken } = useAuthStore.getState();
@@ -32,20 +24,18 @@ axiosInstance.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
-// === RESPONSE INTERCEPTOR ===
-// Nếu lỗi 401 → gọi /auth/refresh → retry request gốc
 let isRefreshing = false;
 let failedQueue = [];
 
 const processQueue = (error, token = null) => {
-  failedQueue.forEach((prom) => {
+  failedQueue.forEach((promise) => {
     if (error) {
-      prom.reject(error);
+      promise.reject(error);
     } else {
-      prom.resolve(token);
+      promise.resolve(token);
     }
   });
   failedQueue = [];
@@ -56,10 +46,8 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Chỉ xử lý 401, và không retry nếu đã thử rồi
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // Nếu đang refresh, đưa request vào hàng đợi
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -67,38 +55,33 @@ axiosInstance.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${token}`;
             return axiosInstance(originalRequest);
           })
-          .catch((err) => Promise.reject(err));
+          .catch((queueError) => Promise.reject(queueError));
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        // Gọi API refresh — trình duyệt tự gửi cookie refresh_token
         const { data } = await axiosPublic.get("/api/v1/auth/refresh");
-        const resData = data?.data || data;
-        const newAccessToken = resData?.access_token || resData?.accessToken;
-        
-        if (!newAccessToken) throw new Error("Không lấy được access token mới");
+        const responseData = data?.data || data;
+        const newAccessToken = responseData?.access_token || responseData?.accessToken;
 
-        // Cập nhật token vào store
+        if (!newAccessToken) {
+          throw new Error("Không lấy được access token mới");
+        }
+
         useAuthStore.getState().setAccessToken(newAccessToken);
-
-        // Retry toàn bộ request đang chờ
         processQueue(null, newAccessToken);
 
-        // Retry request gốc
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        // Refresh thất bại → đăng xuất
         processQueue(refreshError, null);
         useAuthStore.getState().clearAuth();
-        
-        // Tránh vòng lặp redirect nếu đã ở trang login
+
         if (window.location.pathname !== "/login") {
-            window.location.href = "/login";
+          window.location.href = "/login";
         }
-        
+
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
@@ -106,7 +89,7 @@ axiosInstance.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export { axiosInstance, axiosPublic };

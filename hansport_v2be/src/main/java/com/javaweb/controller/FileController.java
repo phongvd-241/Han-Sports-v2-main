@@ -33,7 +33,6 @@ public class FileController {
     public ResponseEntity<ResUploadFileDTO> upload(@RequestParam(name = "files", required = false) List<MultipartFile> files,
                                                    @RequestParam("folder") String folder)
             throws IOException, StorageException {
-        //validation
         if (files == null || files.isEmpty()) {
             throw new StorageException("file is empty. Please upload the file");
         }
@@ -61,7 +60,6 @@ public class FileController {
             throw new StorageException("Missing required params");
         }
 
-        //check file exist
         long fileLength = this.fileService.getFileLength(fileName, folder);
         if (fileLength == 0) {
             throw new StorageException("File not found");

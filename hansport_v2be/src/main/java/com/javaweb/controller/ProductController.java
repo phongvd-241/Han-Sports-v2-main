@@ -83,9 +83,16 @@ public class ProductController {
     public ResponseEntity<ResultPaginationDTO> getAllProducts(@Filter Specification<Product> spec,
                                                               Pageable pageable,
                                                               @RequestParam(name = "includeInactive", defaultValue = "false") boolean includeInactive,
+                                                              @RequestParam(name = "q", required = false) String query,
+                                                              @RequestParam(name = "brand", required = false) String brand,
+                                                              @RequestParam(name = "target", required = false) String target,
+                                                              @RequestParam(name = "minPrice", required = false) Long minPrice,
+                                                              @RequestParam(name = "maxPrice", required = false) Long maxPrice,
                                                               Authentication authentication){
         boolean canIncludeInactive = includeInactive && isAdmin(authentication);
-        return ResponseEntity.status(HttpStatus.OK).body(this.productService.fetchAllProducts(spec, pageable, canIncludeInactive));
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(this.productService.fetchAllProducts(
+                        spec, pageable, canIncludeInactive, query, brand, target, minPrice, maxPrice));
     }
 
     private boolean isAdmin(Authentication authentication) {

@@ -48,9 +48,7 @@ public class CartService {
         User currentUser = this.getUserOrThrow(email);
         Cart cart = this.cartRepository.findByUser(currentUser).orElse(null);
 
-        //cart exist
         if(cart==null){
-            // tạo mới cart
             Cart otherCart = new Cart();
             otherCart.setUser(currentUser);
             otherCart.setSum(0);
@@ -65,7 +63,6 @@ public class CartService {
 
         long requestedQuantity = reqAddProductToCartDTO.getQuantity();
 
-        // check sản phẩm đã từng được thêm vào giỏ hàng trước đây chưa ?
         CartDetail oldDetail = this.cartDetailRepository.findByCartAndProduct(cart, realProduct);
         long currentQuantity = oldDetail == null ? 0 : oldDetail.getQuantity();
         if (currentQuantity + requestedQuantity > realProduct.getQuantity()) {
@@ -80,7 +77,6 @@ public class CartService {
             cd.setQuantity(requestedQuantity);
             this.cartDetailRepository.save(cd);
 
-            // update cart (sum);
             int s = cart.getSum() + 1;
             cart.setSum(s);
             cart = this.cartRepository.save(cart);
@@ -180,7 +176,6 @@ public class CartService {
         resCartDetailDTO.setQuantity(cd.getQuantity());
         resCartDetailDTO.setPrice(cd.getPrice());
 
-        //product cart
         ResCartDetailDTO.ProductCartDetail productCartDetail = new ResCartDetailDTO.ProductCartDetail();
         productCartDetail.setId(cd.getProduct().getId());
         productCartDetail.setName(cd.getProduct().getName());

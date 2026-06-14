@@ -52,16 +52,12 @@ public class AuthController {
 
     @PostMapping("/auth/login")
     public ResponseEntity<ResLoginDTO> login(@RequestBody @Valid ReqLoginDTO loginDTO) {
-// Nạp input gồm username/password vào Security
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
                 loginDTO.getUsername(), loginDTO.getPassword());
 
-        // xác thực người dùng => cần viết hàm loadUserByUsername
         Authentication authentication = authenticationManagerBuilder.getObject()
                 .authenticate(authenticationToken);
 
-
-        // set thông tin người dùng đăng nhập vào context (có thể sử dụng sau này)
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         ResLoginDTO resLoginDTO = new ResLoginDTO();
@@ -78,17 +74,13 @@ public class AuthController {
                 role);
         resLoginDTO.setUser(userLogin);
 
-        //create token
         String access_token = this.securityUtil.createAccessToken(authentication.getName(), resLoginDTO);
         resLoginDTO.setAccessToken(access_token);
 
-        // create refresh token
         String refresh_token = this.securityUtil.createRefreshToken(loginDTO.getUsername(), resLoginDTO);
 
-        //update token
         this.userService.updateUserRefreshTokenHash(this.securityUtil.hashRefreshToken(refresh_token), loginDTO.getUsername());
 
-        // set cookies
         ResponseCookie resCookies = ResponseCookie
                 .from("refresh_token", refresh_token)
                 .httpOnly(true)
@@ -133,13 +125,10 @@ public class AuthController {
         String accessToken = securityUtil.createAccessToken(email, resLoginDTO);
         resLoginDTO.setAccessToken(accessToken);
 
-        // create refresh token
         String refresh_token = this.securityUtil.createRefreshToken(email, resLoginDTO);
 
-        //update token
         this.userService.updateUserRefreshTokenHash(this.securityUtil.hashRefreshToken(refresh_token), email);
 
-        // set cookies
         ResponseCookie resCookies = ResponseCookie
                 .from("refresh_token", refresh_token)
                 .httpOnly(true)
@@ -187,17 +176,14 @@ public class AuthController {
             throw new IdInvalidException("Bạn không có refresh token ở cookie");
         }
 
-        // check valid
         Jwt decodedToken = this.securityUtil.checkValidRefreshToken(refresh_token);
         String email = decodedToken.getSubject();
 
-        // check user by token + email
         User currentUser = this.userService.getUserByRefreshTokenHashAndEmail(this.securityUtil.hashRefreshToken(refresh_token), email);
         if (currentUser == null) {
             throw new IdInvalidException("Refresh Token không hợp lệ");
         }
 
-        // issue new token/set refresh token as cookies
         ResLoginDTO res = new ResLoginDTO();
         User currentUserDB = this.userService.getUserByUsername(email);
         if (currentUserDB != null) {
@@ -211,17 +197,13 @@ public class AuthController {
             res.setUser(userLogin);
         }
 
-        // create access token
         String access_token = this.securityUtil.createAccessToken(email, res);
         res.setAccessToken(access_token);
 
-        // create refresh token
         String new_refresh_token = this.securityUtil.createRefreshToken(email, res);
 
-        // update user
         this.userService.updateUserRefreshTokenHash(this.securityUtil.hashRefreshToken(new_refresh_token), email);
 
-        // set cookies
         ResponseCookie resCookies = ResponseCookie
                 .from("refresh_token", new_refresh_token)
                 .httpOnly(true)
@@ -245,10 +227,8 @@ public class AuthController {
             throw new IdInvalidException("Access Token không hợp lệ");
         }
 
-        // update refresh token = null
         this.userService.updateUserRefreshTokenHash(null, email);
 
-        // remove refresh token cookie
         ResponseCookie deleteSpringCookie = ResponseCookie
                 .from("refresh_token", null)
                 .httpOnly(true)

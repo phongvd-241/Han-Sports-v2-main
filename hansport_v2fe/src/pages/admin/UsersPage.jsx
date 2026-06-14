@@ -4,7 +4,7 @@ import { userApi } from "../../api/userApi";
 import AdminMetricCard from "../../components/admin/AdminMetricCard";
 import AdminPageHeader from "../../components/admin/AdminPageHeader";
 import AdminToolbar from "../../components/admin/AdminToolbar";
-import ConfirmDialog from "../../components/admin/ConfirmDialog";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import DataTable from "../../components/admin/DataTable";
 import FormModal from "../../components/admin/FormModal";
 import IconButton from "../../components/admin/IconButton";

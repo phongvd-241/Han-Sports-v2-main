@@ -20,8 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -54,7 +57,7 @@ public class ProductService {
         Product product = new Product();
         this.applyProductRequest(product, req);
         Product currentProduct = this.productRepository.save(product);
-        currentProduct.setImages(this.addImage(req.getImages(), currentProduct));
+        this.addImage(req.getImages(), currentProduct);
         return this.convertToResCreateProductDTO(currentProduct);
     }
 
@@ -77,10 +80,12 @@ public class ProductService {
         }
 
         this.applyProductRequest(currentProduct, product);
-        this.productRepository.save(currentProduct);
         this.replaceImages(product.getImages(), currentProduct);
+        this.productRepository.save(currentProduct);
         return convertToResUpdateProductDTO(currentProduct);
     }
+
+    @Transactional(readOnly = true)
     public ResProductDTO fetchProductById(long id) throws IdInvalidException {
         Product product = this.productRepository.findById(id)
                 .orElseThrow(() -> new IdInvalidException("Không có sản phẩm"));
@@ -99,13 +104,32 @@ public class ProductService {
         this.productRepository.delete(currentProduct);
     }
 
+    @Transactional(readOnly = true)
     public ResultPaginationDTO fetchAllProducts(Specification<Product> spec, Pageable pageable){
         return fetchAllProducts(spec, pageable, false);
     }
 
+    @Transactional(readOnly = true)
     public ResultPaginationDTO fetchAllProducts(Specification<Product> spec, Pageable pageable, boolean includeInactive){
-        Specification<Product> activeSpec = (root, query, criteriaBuilder) -> criteriaBuilder.isTrue(root.get("active"));
-        Specification<Product> finalSpec = includeInactive ? spec : (spec == null ? activeSpec : spec.and(activeSpec));
+        return fetchAllProducts(spec, pageable, includeInactive, null);
+    }
+
+    @Transactional(readOnly = true)
+    public ResultPaginationDTO fetchAllProducts(Specification<Product> spec, Pageable pageable,
+                                                boolean includeInactive, String query){
+        return fetchAllProducts(spec, pageable, includeInactive, query, null, null, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public ResultPaginationDTO fetchAllProducts(Specification<Product> spec, Pageable pageable,
+                                                boolean includeInactive, String query,
+                                                String brand, String target, Long minPrice, Long maxPrice){
+        Specification<Product> activeSpec = (root, criteriaQuery, criteriaBuilder) ->
+                criteriaBuilder.isTrue(root.get("active"));
+        Specification<Product> finalSpec = includeInactive ? spec : combine(spec, activeSpec);
+        Specification<Product> searchSpec = productSearch(query);
+        finalSpec = combine(finalSpec, searchSpec);
+        finalSpec = combine(finalSpec, productFilters(brand, target, minPrice, maxPrice));
         Page<Product> products = this.productRepository.findAll(finalSpec, pageable);
         ResultPaginationDTO resultPaginationDTO = new ResultPaginationDTO();
         ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
@@ -124,6 +148,53 @@ public class ProductService {
         resultPaginationDTO.setResult(listProduct);
 
         return resultPaginationDTO;
+    }
+
+    private Specification<Product> combine(Specification<Product> first, Specification<Product> second) {
+        if (first == null) {
+            return second;
+        }
+        return second == null ? first : first.and(second);
+    }
+
+    private Specification<Product> productSearch(String query) {
+        if (query == null || query.isBlank()) {
+            return null;
+        }
+        String escaped = query.trim().toLowerCase(Locale.ROOT)
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
+        String pattern = "%" + escaped + "%";
+        return (root, criteriaQuery, criteriaBuilder) -> criteriaBuilder.or(
+                criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), pattern, '\\'),
+                criteriaBuilder.like(criteriaBuilder.lower(root.get("sku")), pattern, '\\'),
+                criteriaBuilder.like(criteriaBuilder.lower(root.get("brand")), pattern, '\\'),
+                criteriaBuilder.like(criteriaBuilder.lower(root.get("category")), pattern, '\\')
+        );
+    }
+
+    private Specification<Product> productFilters(String brand, String target, Long minPrice, Long maxPrice) {
+        Specification<Product> result = null;
+        if (brand != null && !brand.isBlank()) {
+            String normalizedBrand = brand.trim().toLowerCase(Locale.ROOT);
+            result = combine(result, (root, criteriaQuery, criteriaBuilder) ->
+                    criteriaBuilder.equal(criteriaBuilder.lower(root.get("brand")), normalizedBrand));
+        }
+        if (target != null && !target.isBlank()) {
+            String normalizedTarget = target.trim().toLowerCase(Locale.ROOT);
+            result = combine(result, (root, criteriaQuery, criteriaBuilder) ->
+                    criteriaBuilder.equal(criteriaBuilder.lower(root.get("target")), normalizedTarget));
+        }
+        if (minPrice != null && minPrice >= 0) {
+            result = combine(result, (root, criteriaQuery, criteriaBuilder) ->
+                    criteriaBuilder.greaterThanOrEqualTo(root.get("price"), minPrice));
+        }
+        if (maxPrice != null && maxPrice >= 0) {
+            result = combine(result, (root, criteriaQuery, criteriaBuilder) ->
+                    criteriaBuilder.lessThanOrEqualTo(root.get("price"), maxPrice));
+        }
+        return result;
     }
     public boolean existsByName(String name){
         return this.productRepository.existsByName(name);
@@ -155,23 +226,30 @@ public class ProductService {
         return sku.trim().toUpperCase();
     }
 
+    @Transactional
     public List<ProductImage> addImage(List<String> images, Product product){
-        List<ProductImage> imageList = new ArrayList<>();
+        List<ProductImage> managedImages = product.getImages();
+        if (managedImages == null) {
+            managedImages = new ArrayList<>();
+            product.setImages(managedImages);
+        }
         for(String image : normalizeImages(images)){
             ProductImage productImage = new ProductImage();
             productImage.setImageUrl(image);
             productImage.setProduct(product);
-            this.productImageRepository.save(productImage);
-            imageList.add(productImage);
+            managedImages.add(productImage);
         }
-        return imageList;   }
+        this.productRepository.save(product);
+        return new ArrayList<>(managedImages);
+    }
 
     private void replaceImages(List<String> requestedImages, Product product) {
         if (requestedImages == null) {
             return;
         }
 
-        Set<String> requestedImageSet = new LinkedHashSet<>(normalizeImages(requestedImages));
+        List<String> normalizedImages = normalizeImages(requestedImages);
+        Set<String> requestedImageSet = new LinkedHashSet<>(normalizedImages);
         List<ProductImage> managedImages = product.getImages();
         if (managedImages == null) {
             managedImages = new ArrayList<>();
@@ -179,25 +257,33 @@ public class ProductService {
         }
 
         List<ProductImage> existingImages = new ArrayList<>(managedImages);
-        Set<String> existingImageUrls = existingImages.stream()
-                .map(ProductImage::getImageUrl)
-                .collect(Collectors.toSet());
+        Map<String, ProductImage> existingByUrl = existingImages.stream()
+                .collect(Collectors.toMap(
+                        ProductImage::getImageUrl,
+                        image -> image,
+                        (first, ignored) -> first,
+                        LinkedHashMap::new
+                ));
 
         for (ProductImage existingImage : existingImages) {
             if (!requestedImageSet.contains(existingImage.getImageUrl())) {
                 this.deleteProductImageFileIfUnused(existingImage.getImageUrl());
-                managedImages.remove(existingImage);
             }
         }
 
-        for (String requestedImage : requestedImageSet) {
-            if (!existingImageUrls.contains(requestedImage)) {
-                ProductImage productImage = new ProductImage();
+        List<ProductImage> orderedImages = new ArrayList<>();
+        for (String requestedImage : normalizedImages) {
+            ProductImage productImage = existingByUrl.get(requestedImage);
+            if (productImage == null) {
+                productImage = new ProductImage();
                 productImage.setImageUrl(requestedImage);
                 productImage.setProduct(product);
-                managedImages.add(this.productImageRepository.save(productImage));
             }
+            orderedImages.add(productImage);
         }
+
+        managedImages.clear();
+        managedImages.addAll(orderedImages);
     }
 
     private List<String> normalizeImages(List<String> images) {

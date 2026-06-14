@@ -10,7 +10,6 @@ export default function Footer() {
     <footer style={{ background: "linear-gradient(135deg, #0f2027 0%, #1d4ed8 60%, #16a34a 100%)" }} className="text-white pt-14 pb-20 md:pb-10">
       <div className="max-w-[1280px] mx-auto px-4 md:px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-10 border-b border-white/10">
-          {/* Col 1: Brand */}
           <div className="md:col-span-1 flex flex-col gap-5">
             <div className="flex items-center gap-3">
               <img src={LOGO_CIRCLE} alt="HAN SPORTS" className="w-12 h-12 object-contain rounded-full bg-white p-1" />
@@ -38,7 +37,6 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Col 2: Chính sách */}
           <div className="flex flex-col gap-3">
             <h4 className="font-bold text-sm uppercase tracking-wider text-white/40 mb-1">Chính Sách</h4>
             {["Chính sách đổi trả", "Chính sách bảo hành", "Chính sách giao hàng", "Bảo mật thông tin", "Điều khoản dịch vụ"].map((t) => (
@@ -46,7 +44,6 @@ export default function Footer() {
             ))}
           </div>
 
-          {/* Col 3: Hỗ trợ */}
           <div className="flex flex-col gap-3">
             <h4 className="font-bold text-sm uppercase tracking-wider text-white/40 mb-1">Hỗ Trợ Khách Hàng</h4>
             {["Tra cứu đơn hàng", "Hướng dẫn mua hàng", "Hướng dẫn chọn size", "Câu hỏi thường gặp", "Liên hệ đại lý"].map((t) => (
@@ -54,7 +51,6 @@ export default function Footer() {
             ))}
           </div>
 
-          {/* Col 4: Newsletter */}
           <div className="flex flex-col gap-4">
             <h4 className="font-bold text-sm uppercase tracking-wider text-white/40 mb-1">Đăng Ký Nhận Tin</h4>
             <p className="text-sm text-white/70">Nhận ưu đãi và tin tức mới nhất từ HAN SPORTS.</p>

@@ -6,13 +6,11 @@ export default function NotFoundPage() {
 
   return (
     <div className="min-h-screen bg-surface-soft flex flex-col items-center justify-center px-4 text-center">
-      {/* Animated number */}
       <div className="relative mb-8">
         <div className="text-[120px] md:text-[180px] font-extrabold leading-none select-none"
           style={{ background: "linear-gradient(135deg, #16a34a, #0d9488, #1d4ed8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
           {is404 ? "404" : "Oops"}
         </div>
-        {/* Floating emoji */}
         <div className="absolute -top-4 -right-4 text-5xl animate-float">🏸</div>
       </div>
 
@@ -37,7 +35,6 @@ export default function NotFoundPage() {
         </Link>
       </div>
 
-      {/* Decorative dots */}
       <div className="flex gap-3 mt-16 opacity-30">
         {[...Array(5)].map((_, i) => (
           <div key={i} className="rounded-full"

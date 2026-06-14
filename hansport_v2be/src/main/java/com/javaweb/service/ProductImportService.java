@@ -317,11 +317,7 @@ public class ProductImportService {
         if (images == null || images.isEmpty()) {
             return;
         }
-        if (product.getImages() == null) {
-            product.setImages(new ArrayList<>());
-        } else {
-            product.getImages().clear();
-        }
+        product.getImages().clear();
         for (String image : new LinkedHashSet<>(images)) {
             ProductImage productImage = new ProductImage();
             productImage.setImageUrl(image);
@@ -397,7 +393,7 @@ public class ProductImportService {
             return List.of();
         }
         List<String> images = new ArrayList<>();
-        for (String token : value.split("[,\\r\\n]+")) {
+        for (String token : value.split("[,;|\\r\\n]+")) {
             String image = token.trim();
             if (!image.isBlank()) {
                 images.add(image);

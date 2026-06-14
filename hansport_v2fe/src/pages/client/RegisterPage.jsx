@@ -36,7 +36,6 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-surface-soft flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-lg">
-        {/* Header */}
         <div className="text-center mb-8">
           <img src={LOGO_CIRCLE} alt="HAN SPORTS" className="w-16 h-16 rounded-full bg-white p-1 mx-auto mb-3 shadow-card" />
           <p className="font-extrabold text-xl gradient-text">HAN SPORTS</p>

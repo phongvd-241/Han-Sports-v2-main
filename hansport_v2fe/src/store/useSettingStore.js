@@ -5,7 +5,7 @@ export const useSettingStore = create((set, get) => ({
   settings: null,
   loading: false,
   fetchSettings: async () => {
-    if (get().settings) return; // already fetched
+    if (get().settings) return;
     set({ loading: true });
     try {
       const res = await settingApi.getAllSettings();
@@ -21,7 +21,6 @@ export const useSettingStore = create((set, get) => ({
     const s = get().settings;
     if (!s || s[key] === undefined) return defaultValue;
     try {
-      // try to parse JSON if it's an array/object
       if (typeof s[key] === "string" && (s[key].startsWith("[") || s[key].startsWith("{"))) {
         return JSON.parse(s[key]);
       }
@@ -31,7 +30,6 @@ export const useSettingStore = create((set, get) => ({
     }
   },
   
-  // call this after admin updates settings
   refreshSettings: async () => {
     try {
       const res = await settingApi.getAllSettings();

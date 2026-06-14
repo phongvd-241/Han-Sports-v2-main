@@ -22,7 +22,6 @@ export const authApi = {
   changePassword: (data) =>
     axiosInstance.post("/api/v1/auth/change-password", data),
 
-  // Google login: gửi ID token của Google về backend
   googleLogin: (idToken) =>
     axiosPublic.post("/api/v1/auth/google", { idToken }),
 };

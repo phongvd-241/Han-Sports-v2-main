@@ -22,13 +22,11 @@ public class Cart {
     @Min(value = 0)
     private int sum;
 
-    // user_id
     @OneToOne()
     @JoinColumn(name = "user_id")
     @JsonIgnore
     private User user;
 
-    // cart_detail_id
     @OneToMany(mappedBy = "cart", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     List<CartDetail> cartDetails;
 

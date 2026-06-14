@@ -10,8 +10,6 @@ public class StrongPasswordValidator implements ConstraintValidator<StrongPasswo
         if (value == null) {
             return true;
         }
-        // check if string contains at least one digit, one lowercase letter, one
-        // uppercase letter, one special character and 8 characters long
         return value.matches("^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!*()]).{8,}$");
     }
 }

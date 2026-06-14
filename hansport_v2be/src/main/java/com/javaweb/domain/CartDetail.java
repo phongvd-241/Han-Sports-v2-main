@@ -22,13 +22,11 @@ public class CartDetail {
 
     private long price;
 
-    // cart_id: long
     @ManyToOne
     @JoinColumn(name = "cart_id")
     @JsonIgnore
     private Cart cart;
 
-    // product_id: long
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "product_id")
     private Product product;

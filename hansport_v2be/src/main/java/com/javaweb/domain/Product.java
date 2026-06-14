@@ -52,7 +52,8 @@ public class Product {
     private boolean active = true;
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ProductImage> images;
+    @OrderColumn(name = "sort_order")
+    private List<ProductImage> images = new ArrayList<>();
 
     private Instant createdAt;
 

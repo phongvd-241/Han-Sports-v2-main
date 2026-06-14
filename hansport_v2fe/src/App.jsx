@@ -5,7 +5,6 @@ import { Toaster } from "react-hot-toast";
 import { useEffect } from "react";
 import { useSettingStore } from "./store/useSettingStore";
 
-// Client pages
 import HomePage from "./pages/client/HomePage";
 import ShopPage from "./pages/client/ShopPage";
 import ProductDetailPage from "./pages/client/ProductDetailPage";
@@ -16,14 +15,12 @@ import RegisterPage from "./pages/client/RegisterPage";
 import MyOrdersPage from "./pages/client/MyOrdersPage";
 import ProfilePage from "./pages/client/ProfilePage";
 
-// Admin pages
 import DashboardPage from "./pages/admin/DashboardPage";
 import ProductsPage from "./pages/admin/ProductsPage";
 import OrdersAdminPage from "./pages/admin/OrdersAdminPage";
 import UsersPage from "./pages/admin/UsersPage";
 import SettingsPage from "./pages/admin/SettingsPage";
 
-// Utility pages
 import NotFoundPage from "./pages/NotFoundPage";
 
 export default function App() {
@@ -36,7 +33,6 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* ══ CLIENT ROUTES ══ */}
         <Route element={<ClientLayout />}>
           <Route index element={<HomePage />} />
           <Route path="shop" element={<ShopPage />} />
@@ -48,11 +44,9 @@ export default function App() {
           <Route path="orders" element={<MyOrdersPage />} />
           <Route path="profile" element={<ProfilePage />} />
 
-          {/* 404 within client layout */}
           <Route path="*" element={<NotFoundPage />} />
         </Route>
 
-        {/* ══ ADMIN ROUTES (Protected — xem AdminLayout) ══ */}
         <Route path="admin" element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="products" element={<ProductsPage />} />

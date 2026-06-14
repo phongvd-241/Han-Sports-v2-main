@@ -6,6 +6,8 @@ import { cartApi } from "../../api/cartApi";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useCartStore } from "../../store/useCartStore";
 import ProductCard from "../../components/common/ProductCard";
+import ProductDescription from "../../components/common/ProductDescription";
+import SafeImage from "../../components/common/SafeImage";
 import { getImageUrl, formatVND, getFirstImage } from "../../utils/constants";
 
 export default function ProductDetailPage() {
@@ -22,6 +24,12 @@ export default function ProductDetailPage() {
   const [activeTab, setActiveTab] = useState("description");
 
   const [addingCart, setAddingCart] = useState(false);
+  const imageVersion = product?.updatedAt || product?.createdAt || product?.id;
+  const imagesArr = product ? (
+    Array.isArray(product.images)
+      ? product.images.map((item) => (typeof item === "string" ? item : (item.imageUrl || item)))
+      : (product.image ? [product.image] : [])
+  ) : [];
 
   useEffect(() => {
     setLoading(true);
@@ -106,19 +114,13 @@ export default function ProductDetailPage() {
     </div>
   );
 
-  const imagesArr = product ? (
-    Array.isArray(product.images) ? product.images.map(it => (typeof it === 'string' ? it : (it.imageUrl || it)))
-      : (product.image ? [product.image] : [])
-  ) : [];
-
-  const imageUrl = getImageUrl(activeImage);
+  const imageUrl = getImageUrl(activeImage, "product", imageVersion);
 
   return (
     <div className="min-h-screen bg-surface-soft">
 
 
       <div className="max-w-[1280px] mx-auto px-4 md:px-6 py-8">
-        {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-text-muted mb-8">
           <Link to="/" className="hover:text-brand-blue transition-colors">Trang chủ</Link>
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_right</span>
@@ -127,24 +129,54 @@ export default function ProductDetailPage() {
           <span className="text-text-primary font-medium line-clamp-1">{product.name}</span>
         </nav>
 
-        {/* Product Hero */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
-          {/* Image */}
-          <div className="card p-6 flex items-center justify-center flex-col gap-4" style={{ minHeight: 420 }}>
-            <div className="relative w-full flex items-center justify-center">
+          <div className="card p-4 md:p-6" style={{ minHeight: 420 }}>
+            <div className={imagesArr.length > 1
+              ? "grid grid-cols-1 sm:grid-cols-[76px_minmax(0,1fr)] gap-4"
+              : "block"
+            }>
+              {imagesArr.length > 1 && (
+                <div className="order-2 sm:order-1 flex sm:flex-col gap-2 overflow-x-auto sm:overflow-y-auto sm:max-h-[430px] hide-scrollbar">
+                  {imagesArr.map((img, idx) => (
+                    <button
+                      key={`${img}-${idx}`}
+                      type="button"
+                      onClick={() => setActiveImage(img)}
+                      aria-label={`Xem ảnh ${idx + 1}`}
+                      className={`w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-lg overflow-hidden flex-shrink-0 border-2 bg-white transition-colors ${
+                        activeImage === img ? "border-brand-blue" : "border-surface-border hover:border-brand-blue/50"
+                      }`}
+                    >
+                      <SafeImage
+                        src={getImageUrl(img, "product", imageVersion)}
+                        alt={`Ảnh ${idx + 1} của ${product.name}`}
+                        className="w-full h-full object-contain p-1.5"
+                        fallbackClassName="w-full h-full"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className={`${imagesArr.length > 1 ? "order-1 sm:order-2" : ""} relative w-full min-h-[340px] md:min-h-[430px] rounded-lg bg-white flex items-center justify-center overflow-hidden`}>
               {imageUrl ? (
                 <>
-                  <button type="button" onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/80 flex items-center justify-center hover:bg-white transition-shadow shadow-sm">
-                    <span className="material-symbols-outlined">chevron_left</span>
-                  </button>
-                  <img
+                  {imagesArr.length > 1 && (
+                    <button type="button" onClick={prevImage} aria-label="Ảnh trước" className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center hover:bg-white shadow-card">
+                      <span className="material-symbols-outlined">chevron_left</span>
+                    </button>
+                  )}
+                  <SafeImage
                     src={imageUrl}
                     alt={product.name}
-                    className="max-h-[420px] w-full object-contain"
+                    className="absolute inset-0 w-full h-full object-contain p-4 md:p-8"
+                    fallbackClassName="absolute inset-0"
+                    loading="eager"
                   />
-                  <button type="button" onClick={nextImage} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/80 flex items-center justify-center hover:bg-white transition-shadow shadow-sm">
-                    <span className="material-symbols-outlined">chevron_right</span>
-                  </button>
+                  {imagesArr.length > 1 && (
+                    <button type="button" onClick={nextImage} aria-label="Ảnh tiếp theo" className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center hover:bg-white shadow-card">
+                      <span className="material-symbols-outlined">chevron_right</span>
+                    </button>
+                  )}
                 </>
               ) : (
                 <div className="flex flex-col items-center text-text-muted">
@@ -152,28 +184,16 @@ export default function ProductDetailPage() {
                   <p className="mt-2 text-sm">Chưa có ảnh sản phẩm</p>
                 </div>
               )}
-            </div>
-
-            {imagesArr && imagesArr.length > 1 && (
-              <div className="w-full flex gap-2 overflow-x-auto mt-2 px-1">
-                {imagesArr.map((img, idx) => (
-                  <button key={idx} type="button" onClick={() => setActiveImage(img)}
-                    className={`w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 border ${activeImage === img ? 'border-brand-blue' : 'border-surface-border'}`}>
-                    <img src={getImageUrl(img)} alt={`thumb-${idx}`} className="w-full h-full object-contain p-1" />
-                  </button>
-                ))}
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Info */}
           <div className="flex flex-col gap-5">
             {product.brand && (
               <span className="text-sm font-bold text-brand-teal uppercase tracking-wider">{product.brand}</span>
             )}
             <h1 className="text-display font-bold text-text-primary leading-tight">{product.name}</h1>
 
-            {/* Price */}
             <div className="flex items-baseline gap-3 py-4 border-y border-surface-border">
               <span className="text-3xl font-extrabold text-brand-blue">{formatVND(product.price)}</span>
               {product.sold > 0 && (
@@ -181,7 +201,6 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Status */}
             <div className="flex items-center gap-3">
               <span className="text-sm font-semibold text-text-secondary">Tình trạng:</span>
               {product.quantity > 0 ? (
@@ -191,7 +210,6 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Meta */}
             {(product.target || product.brand) && (
               <div className="grid grid-cols-2 gap-3">
                 {[
@@ -209,7 +227,6 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            {/* Quantity */}
             {product.quantity > 0 && (
               <div className="flex items-center gap-4">
                 <span className="text-sm font-semibold text-text-secondary">Số lượng:</span>
@@ -231,7 +248,6 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            {/* Actions */}
             <div className="flex gap-3 mt-2">
               <button
                 onClick={handleAddCart}
@@ -250,7 +266,6 @@ export default function ProductDetailPage() {
               </button>
             </div>
 
-            {/* Trust badges */}
             <div className="grid grid-cols-2 gap-3 pt-4 border-t border-surface-border">
               {[
                 { icon: "verified_user", text: "Hàng chính hãng 100%" },
@@ -267,7 +282,6 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="card mb-12">
           <div className="flex border-b border-surface-border">
             {["description", "specs", "reviews"].map((tab) => {
@@ -286,9 +300,7 @@ export default function ProductDetailPage() {
           </div>
           <div className="p-8">
             {activeTab === "description" && (
-              <div className="prose max-w-none text-text-secondary leading-relaxed">
-                <p>{product.detailDesc || "Chưa có mô tả chi tiết sản phẩm."}</p>
-              </div>
+              <ProductDescription content={product.detailDesc} />
             )}
             {activeTab === "specs" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -315,7 +327,6 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        {/* Related Products */}
         {related.length > 0 && (
           <div>
             <div className="section-header">
