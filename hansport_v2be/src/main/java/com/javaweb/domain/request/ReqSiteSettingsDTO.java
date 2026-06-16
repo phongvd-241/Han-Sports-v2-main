@@ -103,7 +103,6 @@ public class ReqSiteSettingsDTO {
     }
 
     public static class HeroSlideDTO {
-        @NotBlank(message = "Slide title must not be blank")
         private String title;
         private String subtitle;
         private String cta;

@@ -5,6 +5,7 @@ import { productApi } from "../../api/productApi";
 import AdminMetricCard from "../../components/admin/AdminMetricCard";
 import AdminPageHeader from "../../components/admin/AdminPageHeader";
 import EmptyState from "../../components/admin/EmptyState";
+import SafeImage from "../../components/common/SafeImage";
 import { useSettingStore } from "../../store/useSettingStore";
 import { notifySync, syncEvent } from "../../utils/sync";
 import { getImageUrl, getFirstImage } from "../../utils/constants";
@@ -12,9 +13,15 @@ import { getImageUrl, getFirstImage } from "../../utils/constants";
 const TABS = [
   { key: "banner", label: "Banner", icon: "image" },
   { key: "navigation", label: "Menu", icon: "menu" },
-  { key: "catalog", label: "Catalog", icon: "category" },
+  { key: "catalog", label: "Danh mục", icon: "category" },
   { key: "shipping", label: "Vận chuyển", icon: "local_shipping" },
   { key: "contact", label: "Liên hệ", icon: "call" },
+];
+
+const SYSTEM_NAV_ITEMS = [
+  { label: "Trang chủ", icon: "home", description: "Liên kết cố định về trang chủ" },
+  { label: "Sản phẩm", icon: "category", description: "Mega dropdown lấy danh mục và thương hiệu từ sản phẩm" },
+  { label: "Khuyến mãi", icon: "local_fire_department", description: "Liên kết cố định đến khu vực ưu đãi" },
 ];
 
 const ROUTE_OPTIONS = [
@@ -53,24 +60,26 @@ const DEFAULT_HEADER_NAV = [
 ];
 
 export default function SettingsPage() {
-  const { settings, getSetting, refreshAdminSettings } = useSettingStore();
+  const { settings, refreshAdminSettings } = useSettingStore();
   const [activeTab, setActiveTab] = useState("banner");
   const [form, setForm] = useState(null);
+  const [catalogGroups, setCatalogGroups] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [uploadingBannerIndex, setUploadingBannerIndex] = useState(null);
 
   const defaultForm = useMemo(() => {
-    const headerNav = normalizeNavList(getSetting("HEADER_NAV", DEFAULT_HEADER_NAV));
+    const headerNav = normalizeNavList(readSetting(settings, "HEADER_NAV", DEFAULT_HEADER_NAV));
     return {
-      hotline: String(getSetting("HOTLINE", "090 123 4567")),
-      shippingFee: String(getSetting("SHIPPING_FEE", "30000")),
-      freeShipLimit: String(getSetting("FREE_SHIP_LIMIT", "500000")),
-      brands: normalizeStringList(getSetting("BRANDS", ["Yonex", "Victor", "Lining"])),
-      targets: normalizeStringList(getSetting("TARGETS", ["Nam", "Nữ", "Unisex"])),
-      slides: normalizeSlides(getSetting("HERO_SLIDES", [])),
-      categories: normalizeCategories(getSetting("CATEGORIES", [])),
+      hotline: String(readSetting(settings, "HOTLINE", "090 123 4567")),
+      shippingFee: String(readSetting(settings, "SHIPPING_FEE", "30000")),
+      freeShipLimit: String(readSetting(settings, "FREE_SHIP_LIMIT", "500000")),
+      brands: normalizeStringList(readSetting(settings, "BRANDS", ["Yonex", "Victor", "Lining"])),
+      targets: normalizeStringList(readSetting(settings, "TARGETS", ["Nam", "Nữ", "Unisex"])),
+      slides: normalizeSlides(readSetting(settings, "HERO_SLIDES", [])),
+      categories: normalizeCategories(readSetting(settings, "CATEGORIES", [])),
       headerNav,
     };
-  }, [getSetting]);
+  }, [settings]);
 
   const isDirty = form ? stableStringify(toComparable(form)) !== stableStringify(toComparable(defaultForm)) : false;
   const activeTabDirty = form ? stableStringify(getTabComparable(form, activeTab)) !== stableStringify(getTabComparable(defaultForm, activeTab)) : false;
@@ -82,6 +91,22 @@ export default function SettingsPage() {
   useEffect(() => {
     refreshAdminSettings();
   }, [refreshAdminSettings]);
+
+  useEffect(() => {
+    let active = true;
+    productApi.getNavigation()
+      .then((response) => {
+        const data = response.data?.data || response.data;
+        if (active && Array.isArray(data?.categories)) {
+          setCatalogGroups(data.categories);
+        }
+      })
+      .catch((error) => console.error("Không thể tải catalog sản phẩm", error));
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isDirty) return undefined;
@@ -127,17 +152,23 @@ export default function SettingsPage() {
 
   const handleBannerUpload = async (index, file) => {
     if (!file) return;
+    setUploadingBannerIndex(index);
     const toastId = toast.loading("Đang tải ảnh lên...");
     try {
       const res = await productApi.uploadFile(file, "banner");
       const uploaded = res.data?.data?.fileName || res.data?.fileName;
       const fileName = Array.isArray(uploaded) ? uploaded[0] : (uploaded || "");
+      if (!fileName) {
+        throw new Error("Upload response does not contain a file name");
+      }
       updateListItem("slides", index, "image", fileName);
       updateListItem("slides", index, "imageFolder", "banner");
       toast.success("Tải ảnh lên thành công.", { id: toastId });
     } catch (err) {
       console.error(err);
-      toast.error("Tải ảnh thất bại.", { id: toastId });
+      toast.error(err.response?.data?.message || "Tải ảnh thất bại.", { id: toastId });
+    } finally {
+      setUploadingBannerIndex(null);
     }
   };
 
@@ -181,6 +212,20 @@ export default function SettingsPage() {
     toast.success("Đã khôi phục dữ liệu gốc.");
   };
 
+  const handleSyncCatalog = () => {
+    if (catalogGroups.length === 0) {
+      toast.error("Chưa có danh mục sản phẩm để đồng bộ.");
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      brands: uniqueCatalogBrands(catalogGroups),
+      categories: syncCatalogCategories(current.categories, catalogGroups),
+    }));
+    toast.success("Đã đưa danh mục và thương hiệu từ sản phẩm vào biểu mẫu. Nhấn Lưu để áp dụng.");
+  };
+
   if (!form) return (
     <div className="flex items-center justify-center py-20">
       <div className="w-10 h-10 border-4 border-brand-blue border-t-transparent rounded-full animate-spin" />
@@ -189,7 +234,8 @@ export default function SettingsPage() {
 
   const activeSlides = form.slides.filter((slide) => slide.active !== false).length;
   const activeCategories = form.categories.filter((item) => item.active !== false).length;
-  const activeNavItems = form.headerNav.filter((item) => item.active !== false).length;
+  const activeNavItems = SYSTEM_NAV_ITEMS.length + form.headerNav.filter((item) => item.active !== false).length;
+  const totalNavItems = SYSTEM_NAV_ITEMS.length + form.headerNav.length;
 
   return (
     <div className="max-w-6xl flex flex-col gap-6">
@@ -200,8 +246,8 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <AdminMetricCard icon="image" label="Banner đang bật" value={`${activeSlides}/${form.slides.length}`} hint="Slide trang chủ" tone="blue" />
-        <AdminMetricCard icon="menu" label="Menu đang bật" value={`${activeNavItems}/${form.headerNav.length}`} hint="Liên kết header" tone="teal" />
-        <AdminMetricCard icon="category" label="Danh mục đang bật" value={`${activeCategories}/${form.categories.length}`} hint="Danh mục trang chủ" tone="green" />
+        <AdminMetricCard icon="menu" label="Menu đang bật" value={`${activeNavItems}/${totalNavItems}`} hint="Gồm menu hệ thống" tone="teal" />
+        <AdminMetricCard icon="category" label="Danh mục có sản phẩm" value={catalogGroups.length} hint={`${activeCategories}/${form.categories.length} mục đang cấu hình`} tone="green" />
         <AdminMetricCard icon="local_shipping" label="Miễn phí ship" value={formatVnd(form.freeShipLimit)} hint={`Phí ship ${formatVnd(form.shippingFee)}`} tone="amber" />
       </div>
 
@@ -260,9 +306,9 @@ export default function SettingsPage() {
             <BannerSettings
               slides={form.slides}
               onAdd={() => addListItem("slides", {
-                title: "Banner mới",
+                title: "",
                 subtitle: "",
-                cta: "Mua ngay",
+                cta: "",
                 ctaLink: "/shop",
                 image: "",
                 imageFolder: "banner",
@@ -273,12 +319,14 @@ export default function SettingsPage() {
               onMove={(index, direction) => moveListItem("slides", index, direction)}
               onChange={(index, field, value) => updateListItem("slides", index, field, value)}
               onUpload={handleBannerUpload}
+              uploadingIndex={uploadingBannerIndex}
             />
           )}
 
           {activeTab === "navigation" && (
             <NavigationSettings
               items={form.headerNav}
+              catalogGroups={catalogGroups}
               onAdd={() => addListItem("headerNav", { label: "Liên kết mới", path: "/shop", active: true })}
               onRemove={(index) => removeListItem("headerNav", index)}
               onMove={(index, direction) => moveListItem("headerNav", index, direction)}
@@ -291,7 +339,9 @@ export default function SettingsPage() {
               brands={form.brands}
               targets={form.targets}
               categories={form.categories}
+              catalogGroups={catalogGroups}
               onField={updateField}
+              onSyncCatalog={handleSyncCatalog}
               onAddCategory={() => addListItem("categories", {
                 name: "Danh mục mới",
                 icon: "category",
@@ -322,11 +372,11 @@ export default function SettingsPage() {
   );
 }
 
-function BannerSettings({ slides, onAdd, onRemove, onMove, onChange, onUpload }) {
+function BannerSettings({ slides, onAdd, onRemove, onMove, onChange, onUpload, uploadingIndex }) {
   return (
     <Section
       title="Banner trang chủ"
-      description="Quản lý slide hiển thị ở homepage. Admin có thể bật/tắt, sắp xếp thứ tự và xem preview trước khi lưu."
+      description="Mỗi banner chỉ gồm ảnh và đường dẫn khi người dùng nhấn vào ảnh."
       actions={(
         <button type="button" onClick={onAdd} className="btn-outline text-sm py-2 px-3">
           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
@@ -350,38 +400,64 @@ function BannerSettings({ slides, onAdd, onRemove, onMove, onChange, onUpload })
                 removeLabel="Xóa banner"
               />
 
-              <div className="grid grid-cols-1 lg:grid-cols-[180px_1fr] gap-4">
-                {getFirstImage(slide) ? (
-                  <div className="relative w-full h-32 rounded-lg overflow-hidden border border-surface-border group/img bg-white">
-                    <img src={getImageUrl(getFirstImage(slide), slide.imageFolder || "banner")} alt={slide.altText || slide.title || "Banner"} className="w-full h-full object-cover" />
+              <div className="grid grid-cols-1 gap-4">
+                <div className="relative aspect-[16/6] min-h-40 rounded-lg overflow-hidden border border-surface-border bg-white">
+                  {getFirstImage(slide) ? (
+                    <SafeImage
+                      src={getImageUrl(getFirstImage(slide), slide.imageFolder || "banner")}
+                      alt={`Banner ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      fallbackClassName="w-full h-full bg-surface-muted"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-text-muted">
+                      <span className="material-symbols-outlined" style={{ fontSize: 42 }}>add_photo_alternate</span>
+                      <span className="mt-2 text-sm font-semibold">Chưa chọn ảnh banner</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className={`btn-outline text-sm py-2 px-3 cursor-pointer ${uploadingIndex === index ? "pointer-events-none opacity-60" : ""}`}>
+                    <span className={`material-symbols-outlined ${uploadingIndex === index ? "animate-spin" : ""}`} style={{ fontSize: 18 }}>
+                      {uploadingIndex === index ? "progress_activity" : "upload"}
+                    </span>
+                    {uploadingIndex === index ? "Đang tải..." : (getFirstImage(slide) ? "Thay ảnh" : "Chọn ảnh")}
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                      disabled={uploadingIndex === index}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        event.target.value = "";
+                        onUpload(index, file);
+                      }}
+                    />
+                  </label>
+
+                  {getFirstImage(slide) && (
                     <button
                       type="button"
                       onClick={() => {
                         onChange(index, "image", "");
-                        onChange(index, "imageFolder", "");
+                        onChange(index, "imageFolder", "banner");
                       }}
-                      className="absolute inset-0 bg-black/45 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity"
-                      aria-label="Xóa ảnh banner"
+                      className="btn-ghost text-danger text-sm py-2 px-3"
                     >
-                      <span className="material-symbols-outlined text-white" style={{ fontSize: 24 }}>delete</span>
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+                      Xóa ảnh
                     </button>
-                  </div>
-                ) : (
-                  <label className="h-32 border-2 border-dashed border-surface-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-brand-blue hover:bg-brand-blue-light/30 transition-all bg-white">
-                    <span className="material-symbols-outlined text-text-muted" style={{ fontSize: 28 }}>image</span>
-                    <span className="text-xs font-bold text-text-muted mt-1 uppercase">Tải ảnh</span>
-                    <input type="file" className="hidden" accept="image/*" onChange={(event) => onUpload(index, event.target.files[0])} />
-                  </label>
-                )}
+                  )}
+                  <span className="text-xs text-text-muted">JPG, PNG hoặc WebP, tối đa 5MB.</span>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <Input label="Tiêu đề" value={slide.title || ""} onChange={(value) => onChange(index, "title", value)} placeholder="Ưu đãi thể thao" />
-                  <Input label="Nút CTA" value={slide.cta || ""} onChange={(value) => onChange(index, "cta", value)} placeholder="Mua ngay" />
-                  <Input label="Mô tả" value={slide.subtitle || ""} onChange={(value) => onChange(index, "subtitle", value)} placeholder="Thông điệp ngắn trên banner" />
-                  <RoutePicker label="Đường dẫn CTA" value={slide.ctaLink || ""} onChange={(value) => onChange(index, "ctaLink", value)} />
-                  <div className="md:col-span-2">
-                    <Input label="Alt text ảnh" value={slide.altText || ""} onChange={(value) => onChange(index, "altText", value)} placeholder="Mô tả ngắn cho ảnh banner" />
-                  </div>
+                <div className="max-w-2xl">
+                  <RoutePicker
+                    label="Đường dẫn khi nhấn banner"
+                    value={slide.ctaLink || ""}
+                    onChange={(value) => onChange(index, "ctaLink", value)}
+                  />
                 </div>
               </div>
             </div>
@@ -399,11 +475,11 @@ function BannerSettings({ slides, onAdd, onRemove, onMove, onChange, onUpload })
   );
 }
 
-function NavigationSettings({ items, onAdd, onRemove, onMove, onChange }) {
+function NavigationSettings({ items, catalogGroups, onAdd, onRemove, onMove, onChange }) {
   return (
     <Section
       title="Thanh menu"
-      description="Quản lý liên kết header bằng route gợi ý thay vì yêu cầu admin nhớ đường dẫn thủ công."
+      description="Ba mục chính của header do hệ thống quản lý. Admin chỉ thêm các liên kết phụ khi thật sự cần."
       actions={(
         <button type="button" onClick={onAdd} className="btn-outline text-sm py-2 px-3">
           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
@@ -413,6 +489,34 @@ function NavigationSettings({ items, onAdd, onRemove, onMove, onChange }) {
     >
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-5">
         <div className="flex flex-col gap-3">
+          <div className="rounded-xl border border-brand-blue/20 bg-brand-blue-light/40 p-4">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <p className="text-sm font-bold text-text-primary">Menu hệ thống</p>
+                <p className="text-xs text-text-muted mt-1">Luôn đồng bộ với giao diện client, không cần nhập thủ công.</p>
+              </div>
+              <span className="badge-blue">{SYSTEM_NAV_ITEMS.length} mục</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {SYSTEM_NAV_ITEMS.map((item) => (
+                <div key={item.label} className="rounded-lg border border-surface-border bg-white p-3">
+                  <div className="flex items-center gap-2 text-brand-blue">
+                    <span className="material-symbols-outlined" style={{ fontSize: 19 }}>{item.icon}</span>
+                    <p className="text-sm font-bold text-text-primary">{item.label}</p>
+                  </div>
+                  <p className="text-xs text-text-muted mt-2 leading-relaxed">
+                    {item.label === "Sản phẩm"
+                      ? `${catalogGroups.length} danh mục đang lấy từ database`
+                      : item.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {items.length > 0 && (
+            <p className="text-xs font-bold text-text-muted uppercase tracking-wider mt-2">Liên kết bổ sung</p>
+          )}
           {items.map((item, index) => (
             <div key={index} className={`p-4 border rounded-xl bg-surface-soft ${item.active === false ? "opacity-70" : ""}`}>
               <ItemHeader
@@ -432,10 +536,20 @@ function NavigationSettings({ items, onAdd, onRemove, onMove, onChange }) {
               </div>
             </div>
           ))}
+          {items.length === 0 && (
+            <p className="rounded-lg border border-dashed border-surface-border px-4 py-3 text-sm text-text-muted">
+              Chưa có liên kết bổ sung. Header vẫn hiển thị đầy đủ ba mục hệ thống ở trên.
+            </p>
+          )}
         </div>
 
         <PreviewPanel title="Preview header menu">
           <div className="flex flex-wrap gap-2">
+            {SYSTEM_NAV_ITEMS.map((item) => (
+              <span key={item.label} className="px-3 py-2 rounded-lg bg-brand-blue-light text-brand-blue border border-brand-blue/15 text-sm font-semibold">
+                {item.label}
+              </span>
+            ))}
             {items.filter((item) => item.active !== false).map((item, index) => (
               <span key={`${item.label}-${index}`} className="px-3 py-2 rounded-lg bg-white border border-surface-border text-sm font-semibold text-text-primary">
                 {item.label || "Chưa đặt tên"}
@@ -448,18 +562,61 @@ function NavigationSettings({ items, onAdd, onRemove, onMove, onChange }) {
   );
 }
 
-function CatalogSettings({ brands, targets, categories, onField, onAddCategory, onRemoveCategory, onMoveCategory, onCategoryChange }) {
+function CatalogSettings({
+  brands,
+  targets,
+  categories,
+  catalogGroups,
+  onField,
+  onSyncCatalog,
+  onAddCategory,
+  onRemoveCategory,
+  onMoveCategory,
+  onCategoryChange,
+}) {
   return (
     <Section
       title="Catalog sản phẩm"
-      description="Quản lý thương hiệu, nhóm đối tượng và danh mục homepage bằng control có sẵn thay vì nhập raw CSS/icon."
+      description="Danh mục menu sản phẩm lấy tự động từ database. Phần dưới cho phép tùy chỉnh cách hiển thị trên trang chủ."
       actions={(
-        <button type="button" onClick={onAddCategory} className="btn-outline text-sm py-2 px-3">
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-          Thêm danh mục
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={onSyncCatalog} className="btn-primary text-sm py-2 px-3">
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>sync</span>
+            Đồng bộ từ sản phẩm
+          </button>
+          <button type="button" onClick={onAddCategory} className="btn-outline text-sm py-2 px-3">
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
+            Thêm danh mục
+          </button>
+        </div>
       )}
     >
+      <div className="rounded-xl border border-brand-green/20 bg-brand-green-light/40 p-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+          <div>
+            <p className="text-sm font-bold text-text-primary">Catalog đang có trong database</p>
+            <p className="text-xs text-text-muted mt-1">Dữ liệu này đang được dùng cho mega dropdown ngoài website.</p>
+          </div>
+          <span className="badge-green">{catalogGroups.length} danh mục</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {catalogGroups.map((group) => (
+            <div key={group.name} className="rounded-lg border border-surface-border bg-white p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-bold text-text-primary">{group.name}</p>
+                <span className="text-xs font-semibold text-text-muted">{group.productCount} sản phẩm</span>
+              </div>
+              <p className="text-xs text-text-muted mt-2 leading-relaxed">
+                {(group.brands || []).map((brand) => brand.name).join(", ") || "Chưa có thương hiệu"}
+              </p>
+            </div>
+          ))}
+          {catalogGroups.length === 0 && (
+            <p className="text-sm text-text-muted">Chưa có sản phẩm hoạt động để tạo catalog.</p>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <ChipEditor label="Thương hiệu" values={brands} onChange={(values) => onField("brands", values)} placeholder="Nhập thương hiệu rồi Enter" />
         <ChipEditor label="Nhóm đối tượng" values={targets} onChange={(values) => onField("targets", values)} placeholder="Nam, Nữ, Unisex..." />
@@ -590,24 +747,20 @@ function HeroPreview({ slide }) {
 
   const image = getFirstImage(slide);
   return (
-    <div className="relative min-h-64 overflow-hidden rounded-xl bg-gradient-to-br from-slate-900 via-brand-blue to-brand-teal text-white border border-surface-border">
-      {image && (
-        <img
+    <div className="relative aspect-[16/6] min-h-48 overflow-hidden rounded-xl bg-surface-muted border border-surface-border">
+      {image ? (
+        <SafeImage
           src={getImageUrl(image, slide.imageFolder || "banner")}
-          alt={slide.altText || slide.title || "Banner preview"}
-          className="absolute inset-0 w-full h-full object-cover"
+          alt="Banner preview"
+          className="w-full h-full object-cover"
+          fallbackClassName="w-full h-full"
         />
-      )}
-      <div className="absolute inset-0 bg-black/45" />
-      <div className="relative p-5 min-h-64 flex flex-col justify-end">
-        <span className="w-max px-2 py-1 rounded-full bg-white/15 text-xs font-bold mb-3">{slide.active === false ? "Đang ẩn" : "Đang hiển thị"}</span>
-        <h4 className="text-2xl font-extrabold leading-tight">{slide.title || "Tiêu đề banner"}</h4>
-        <p className="text-sm text-white/80 mt-2">{slide.subtitle || "Mô tả ngắn của banner sẽ hiển thị tại đây."}</p>
-        <div className="mt-4 inline-flex w-max items-center gap-2 bg-white text-text-primary rounded-lg px-4 py-2 text-sm font-bold">
-          {slide.cta || "Mua ngay"}
-          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_forward</span>
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center text-text-muted">
+          <span className="material-symbols-outlined" style={{ fontSize: 48 }}>image_not_supported</span>
+          <span className="mt-2 text-sm font-semibold">Chưa chọn ảnh banner</span>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -789,9 +942,9 @@ function validateSettings(form, activeTab, setActiveTab) {
     return false;
   }
 
-  const invalidSlide = form.slides.some((item) => !item.title?.trim() || (item.ctaLink && !isInternalPath(item.ctaLink)));
+  const invalidSlide = form.slides.some((item) => !getFirstImage(item) || (item.ctaLink && !isInternalPath(item.ctaLink)));
   if (invalidSlide) {
-    toast.error("Banner phải có tiêu đề và link nội bộ phải bắt đầu bằng dấu /.");
+    toast.error("Mỗi banner phải có ảnh và đường dẫn nội bộ phải bắt đầu bằng dấu /.");
     setActiveTab("banner");
     return false;
   }
@@ -854,14 +1007,14 @@ function toComparable(form) {
 
 function normalizeSlides(slides) {
   return Array.isArray(slides) ? slides.map((slide) => ({
-    title: slide.title || "",
-    subtitle: slide.subtitle || "",
-    cta: slide.cta || "",
+    title: "",
+    subtitle: "",
+    cta: "",
     ctaLink: slide.ctaLink || "",
     image: slide.image || "",
     imageFolder: slide.imageFolder || "banner",
-    altText: slide.altText || slide.title || "",
-    bg: slide.bg || "",
+    altText: "",
+    bg: "",
     active: slide.active !== false,
   })) : [];
 }
@@ -892,6 +1045,58 @@ function normalizeStringList(values) {
     return values.split(",").map((item) => item.trim()).filter(Boolean);
   }
   return [];
+}
+
+function readSetting(settings, key, defaultValue) {
+  if (!settings || settings[key] === undefined) return defaultValue;
+
+  const value = settings[key];
+  if (typeof value !== "string") return value;
+
+  const normalized = value.trim();
+  if (!normalized.startsWith("[") && !normalized.startsWith("{")) return value;
+
+  try {
+    return JSON.parse(normalized);
+  } catch {
+    return value;
+  }
+}
+
+function uniqueCatalogBrands(catalogGroups) {
+  return catalogGroups
+    .flatMap((group) => group.brands || [])
+    .map((brand) => brand.name?.trim())
+    .filter((name, index, values) => name && values.indexOf(name) === index);
+}
+
+function syncCatalogCategories(currentCategories, catalogGroups) {
+  return catalogGroups.map((group, index) => {
+    const current = currentCategories.find(
+      (category) => category.name?.trim().toLowerCase() === group.name.trim().toLowerCase(),
+    );
+    return {
+      name: group.name,
+      icon: current?.icon || catalogCategoryIcon(group.name),
+      path: `/shop?${new URLSearchParams({ category: group.name }).toString()}`,
+      color: current?.color || catalogCategoryColor(index),
+      active: current?.active !== false,
+    };
+  });
+}
+
+function catalogCategoryIcon(category) {
+  const normalized = category.toLowerCase();
+  if (normalized.includes("vợt")) return "sports_tennis";
+  if (normalized.includes("balo")) return "backpack";
+  if (normalized.includes("túi")) return "shopping_bag";
+  if (normalized.includes("giày")) return "footprint";
+  if (normalized.includes("áo") || normalized.includes("quần")) return "dry_cleaning";
+  return "category";
+}
+
+function catalogCategoryColor(index) {
+  return COLOR_OPTIONS[index % 3].value;
 }
 
 function isInternalPath(path) {

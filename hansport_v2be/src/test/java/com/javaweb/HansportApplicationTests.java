@@ -2,6 +2,7 @@ package com.javaweb;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javaweb.domain.Order;
+import com.javaweb.domain.AppSetting;
 import com.javaweb.domain.Product;
 import com.javaweb.domain.Role;
 import com.javaweb.domain.User;
@@ -15,9 +16,13 @@ import com.javaweb.domain.response.ResLoginDTO;
 import com.javaweb.domain.response.product.ResProductImportDTO;
 import com.javaweb.domain.response.role.ResRoleDTO;
 import com.javaweb.repository.OrderRepository;
+import com.javaweb.repository.AppSettingRepository;
 import com.javaweb.repository.ProductImageRepository;
 import com.javaweb.repository.ProductRepository;
 import com.javaweb.repository.RoleRepository;
+import com.javaweb.repository.SiteBannerRepository;
+import com.javaweb.repository.SiteCategoryRepository;
+import com.javaweb.repository.SiteNavigationItemRepository;
 import com.javaweb.repository.UserRepository;
 import com.javaweb.service.AppSettingService;
 import com.javaweb.service.CartService;
@@ -46,6 +51,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,6 +59,7 @@ import java.nio.charset.StandardCharsets;
 import java.io.ByteArrayOutputStream;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -115,6 +122,18 @@ class HansportApplicationTests {
 
 	@Autowired
 	private OrderRepository orderRepository;
+
+	@Autowired
+	private AppSettingRepository appSettingRepository;
+
+	@Autowired
+	private SiteBannerRepository siteBannerRepository;
+
+	@Autowired
+	private SiteCategoryRepository siteCategoryRepository;
+
+	@Autowired
+	private SiteNavigationItemRepository siteNavigationItemRepository;
 
 	@Autowired
 	private CartService cartService;
@@ -368,6 +387,33 @@ class HansportApplicationTests {
 	}
 
 	@Test
+	@Transactional
+	void bannerSettingsAllowImageAndLinkWithoutOverlayText() throws Exception {
+		ReqSiteSettingsDTO settings = siteSettingsRequest();
+		ReqSiteSettingsDTO.HeroSlideDTO slide = settings.getHeroSlides().get(0);
+		slide.setTitle("");
+		slide.setSubtitle("");
+		slide.setCta("");
+		slide.setAltText("");
+
+		appSettingService.updateSiteSettings(settings);
+
+		var banner = siteBannerRepository.findAllByOrderBySortOrderAscIdAsc().get(0);
+		Assertions.assertEquals("", banner.getTitle());
+		Assertions.assertEquals("banner.png", banner.getImage());
+		Assertions.assertEquals("/shop", banner.getCtaLink());
+	}
+
+	@Test
+	void bannerSettingsRequireAnImage() {
+		ReqSiteSettingsDTO settings = siteSettingsRequest();
+		settings.getHeroSlides().get(0).setImage("");
+
+		Assertions.assertThrows(IdInvalidException.class,
+				() -> appSettingService.updateSiteSettings(settings));
+	}
+
+	@Test
 	void publicSettingsHideInactiveItemsButAdminSettingsKeepThem() throws Exception {
 		User admin = userRepository.findByEmail("admin@hansport.local").orElseThrow();
 		ReqSiteSettingsDTO settings = siteSettingsRequest();
@@ -377,6 +423,8 @@ class HansportApplicationTests {
 		hiddenSlide.setSubtitle("Không hiển thị ngoài public");
 		hiddenSlide.setCta("Xem");
 		hiddenSlide.setCtaLink("/shop");
+		hiddenSlide.setImage("hidden-banner.png");
+		hiddenSlide.setImageFolder("banner");
 		hiddenSlide.setAltText("Banner ẩn");
 		hiddenSlide.setActive(false);
 		settings.setHeroSlides(List.of(settings.getHeroSlides().get(0), hiddenSlide));
@@ -403,6 +451,32 @@ class HansportApplicationTests {
 		var adminData = objectMapper.readTree(adminResult.getResponse().getContentAsString()).get("data");
 		Assertions.assertEquals(2, objectMapper.readTree(adminData.get("HERO_SLIDES").asText()).size());
 		Assertions.assertEquals(2, objectMapper.readTree(adminData.get("HEADER_NAV").asText()).size());
+	}
+
+	@Test
+	@Transactional
+	void legacySiteContentIsReturnedUntilStructuredTablesArePopulated() {
+		siteBannerRepository.deleteAll();
+		siteCategoryRepository.deleteAll();
+		siteNavigationItemRepository.deleteAll();
+		saveLegacySetting("HERO_SLIDES", """
+				[{"title":"Legacy banner","ctaLink":"/shop","active":true}]
+				""");
+		saveLegacySetting("CATEGORIES", """
+				[{"name":"Legacy category","icon":"category","path":"/shop","color":"bg-white","active":true}]
+				""");
+		saveLegacySetting("HEADER_NAV", """
+				[{"label":"Legacy menu","path":"/shop","active":true}]
+				""");
+
+		var settings = appSettingService.getAllSettings();
+
+		Assertions.assertEquals("Legacy banner",
+				readSettingArray(settings, "HERO_SLIDES").get(0).get("title").asText());
+		Assertions.assertEquals("Legacy category",
+				readSettingArray(settings, "CATEGORIES").get(0).get("name").asText());
+		Assertions.assertEquals("Legacy menu",
+				readSettingArray(settings, "HEADER_NAV").get(0).get("label").asText());
 	}
 
 	@Test
@@ -509,11 +583,33 @@ class HansportApplicationTests {
 		mockMvc.perform(get("/api/v1/products")
 						.param("brand", "searchbrand")
 						.param("target", "nam")
+						.param("category", "searchcategory")
 						.param("minPrice", "2000000")
 						.param("maxPrice", "3000000"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.meta.total").value(1))
 				.andExpect(jsonPath("$.data.result[0].id").value(product.getId()));
+	}
+
+	@Test
+	void productNavigationGroupsActiveBrandsByCategory() throws Exception {
+		Product first = createProduct("Header Navigation One", 5);
+		first.setCategory("Navigation Category");
+		first.setBrand("Navigation Brand A");
+		productRepository.save(first);
+
+		Product second = createProduct("Header Navigation Two", 5);
+		second.setCategory("Navigation Category");
+		second.setBrand("Navigation Brand B");
+		productRepository.save(second);
+
+		mockMvc.perform(get("/api/v1/products/navigation"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.categories").isArray())
+				.andExpect(jsonPath("$.data.categories[?(@.name == 'Navigation Category')].productCount")
+						.value(2))
+				.andExpect(jsonPath("$.data.categories[?(@.name == 'Navigation Category')].brands.length()")
+						.value(2));
 	}
 
 	@Test
@@ -747,6 +843,21 @@ class HansportApplicationTests {
 		nav.setActive(true);
 		settings.setHeaderNav(List.of(nav));
 		return settings;
+	}
+
+	private void saveLegacySetting(String key, String value) {
+		AppSetting setting = appSettingRepository.findBySettingKey(key).orElseGet(AppSetting::new);
+		setting.setSettingKey(key);
+		setting.setSettingValue(value.strip());
+		appSettingRepository.save(setting);
+	}
+
+	private com.fasterxml.jackson.databind.JsonNode readSettingArray(Map<String, String> settings, String key) {
+		try {
+			return objectMapper.readTree(settings.get(key));
+		} catch (Exception ex) {
+			throw new IllegalStateException(ex);
+		}
 	}
 
 	private boolean placeOrderWhenReleased(CountDownLatch start, User user, ReqOrderDTO req) throws InterruptedException {

@@ -3,6 +3,8 @@ import axiosInstance from "./axiosSetup";
 export const productApi = {
   getAll: (params) => axiosInstance.get("/api/v1/products", { params }),
 
+  getNavigation: () => axiosInstance.get("/api/v1/products/navigation"),
+
   getById: (id) => axiosInstance.get(`/api/v1/products/${id}`),
 
   create: (data) => axiosInstance.post("/api/v1/products", data),

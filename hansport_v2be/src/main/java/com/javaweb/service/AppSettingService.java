@@ -99,6 +99,9 @@ public class AppSettingService {
             updateSetting("FREE_SHIP_LIMIT", String.valueOf(settings.getFreeShipLimit()));
             updateSetting("BRANDS", objectMapper.writeValueAsString(cleanStringList(settings.getBrands())));
             updateSetting("TARGETS", objectMapper.writeValueAsString(cleanStringList(settings.getTargets())));
+            updateSetting("HERO_SLIDES", objectMapper.writeValueAsString(settings.getHeroSlides()));
+            updateSetting("CATEGORIES", objectMapper.writeValueAsString(settings.getCategories()));
+            updateSetting("HEADER_NAV", objectMapper.writeValueAsString(settings.getHeaderNav()));
             replaceBanners(settings.getHeroSlides());
             replaceCategories(settings.getCategories());
             replaceNavigationItems(settings.getHeaderNav());
@@ -111,12 +114,15 @@ public class AppSettingService {
         switch (key) {
             case "HERO_SLIDES":
                 replaceBanners(parseHeroSlides(value));
+                updateSetting(key, value);
                 break;
             case "CATEGORIES":
                 replaceCategories(parseCategories(value));
+                updateSetting(key, value);
                 break;
             case "HEADER_NAV":
                 replaceNavigationItems(parseNavigationItems(value));
+                updateSetting(key, value);
                 break;
             default:
                 updateSetting(key, value);
@@ -138,7 +144,7 @@ public class AppSettingService {
         for (int i = 0; i < slides.size(); i++) {
             ReqSiteSettingsDTO.HeroSlideDTO dto = slides.get(i);
             SiteBanner banner = new SiteBanner();
-            banner.setTitle(dto.getTitle().trim());
+            banner.setTitle(dto.getTitle() == null ? "" : dto.getTitle().trim());
             banner.setSubtitle(blankToNull(dto.getSubtitle()));
             banner.setCta(blankToNull(dto.getCta()));
             banner.setCtaLink(blankToNull(dto.getCtaLink()));
@@ -236,6 +242,9 @@ public class AppSettingService {
             if (slide == null) {
                 throw new IdInvalidException("HERO_SLIDES must not contain null items");
             }
+            if (slide.getImage() == null || slide.getImage().trim().isEmpty()) {
+                throw new IdInvalidException("HERO_SLIDES.image must not be blank");
+            }
             validateInternalPath("HERO_SLIDES.ctaLink", slide.getCtaLink(), true);
         }
         for (ReqSiteSettingsDTO.CategoryDTO category : settings.getCategories()) {
@@ -317,8 +326,8 @@ public class AppSettingService {
             if (!item.isObject()) {
                 throw new IdInvalidException("HERO_SLIDES must contain object values");
             }
-            if (textField(item, "title").isBlank()) {
-                throw new IdInvalidException("HERO_SLIDES.title must not be blank");
+            if (textField(item, "image").isBlank()) {
+                throw new IdInvalidException("HERO_SLIDES.image must not be blank");
             }
             validateInternalPath("HERO_SLIDES.ctaLink", textField(item, "ctaLink"), true);
         }
@@ -414,11 +423,18 @@ public class AppSettingService {
 
     private void putSiteContent(Map<String, String> settings, boolean publicOnly) {
         try {
-            settings.put("HERO_SLIDES", objectMapper.writeValueAsString(bannerDtos(publicOnly)));
-            settings.put("CATEGORIES", objectMapper.writeValueAsString(categoryDtos(publicOnly)));
-            settings.put("HEADER_NAV", objectMapper.writeValueAsString(navigationDtos(publicOnly)));
+            putStructuredContent(settings, "HERO_SLIDES", bannerDtos(publicOnly));
+            putStructuredContent(settings, "CATEGORIES", categoryDtos(publicOnly));
+            putStructuredContent(settings, "HEADER_NAV", navigationDtos(publicOnly));
         } catch (JsonProcessingException ex) {
             throw new IllegalStateException("Unable to serialize site content settings", ex);
+        }
+    }
+
+    private void putStructuredContent(Map<String, String> settings, String key, List<?> values)
+            throws JsonProcessingException {
+        if (!values.isEmpty() || !settings.containsKey(key)) {
+            settings.put(key, objectMapper.writeValueAsString(values));
         }
     }
 

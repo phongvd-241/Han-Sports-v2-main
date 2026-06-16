@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { productApi } from "../../api/productApi";
@@ -7,6 +7,7 @@ import { useAuthStore } from "../../store/useAuthStore";
 import { useCartStore } from "../../store/useCartStore";
 import { useSettingStore } from "../../store/useSettingStore";
 import ProductCard from "../../components/common/ProductCard";
+import SafeImage from "../../components/common/SafeImage";
 import { formatVND, getImageUrl, getFirstImage } from "../../utils/constants";
 import { onSync, syncEvent } from "../../utils/sync";
 
@@ -51,13 +52,20 @@ export default function HomePage() {
   const { setCart } = useCartStore();
   const { getSetting, refreshSettings } = useSettingStore();
   const [products, setProducts] = useState([]);
+  const [categoryProducts, setCategoryProducts] = useState([]);
+  const [catalogGroups, setCatalogGroups] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categoryLoading, setCategoryLoading] = useState(true);
   const [heroIdx, setHeroIdx] = useState(0);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("");
   const { h, m, s } = useCountdown(8);
 
   const HERO_SLIDES = getSetting("HERO_SLIDES", []).filter((slide) => slide.active !== false);
-  const CATEGORIES = getSetting("CATEGORIES", []).filter((category) => category.active !== false);
+  const configuredCategories = getSetting("CATEGORIES", []).filter((category) => category.active !== false);
+  const displayCategories = useMemo(
+    () => buildDisplayCategories(catalogGroups, configuredCategories),
+    [catalogGroups, configuredCategories],
+  );
 
   const fetchProducts = useCallback(() => {
     setLoading(true);
@@ -67,17 +75,63 @@ export default function HomePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const fetchNavigation = useCallback(() => {
+    productApi.getNavigation()
+      .then((response) => {
+        const data = response.data?.data || response.data;
+        setCatalogGroups(Array.isArray(data?.categories) ? data.categories : []);
+      })
+      .catch((error) => console.error("Không thể tải danh mục sản phẩm", error));
+  }, []);
+
   useEffect(() => {
     fetchProducts();
-  }, [fetchProducts]);
+    fetchNavigation();
+  }, [fetchNavigation, fetchProducts]);
+
+  useEffect(() => {
+    const categoryNames = catalogGroups.map((group) => group.name);
+    if (categoryNames.length > 0 && !categoryNames.includes(activeTab)) {
+      setActiveTab(categoryNames[0]);
+    }
+  }, [activeTab, catalogGroups]);
+
+  useEffect(() => {
+    if (!activeTab) {
+      setCategoryProducts([]);
+      setCategoryLoading(false);
+      return;
+    }
+
+    let active = true;
+    setCategoryLoading(true);
+    productApi.getAll({ page: 0, size: 12, sort: "id,desc", category: activeTab })
+      .then((response) => {
+        if (active) {
+          setCategoryProducts(response.data?.data?.result || []);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        if (active) setCategoryProducts([]);
+      })
+      .finally(() => {
+        if (active) setCategoryLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [activeTab]);
 
   useEffect(() => {
     const unsub = onSync((event) => {
       if (event === syncEvent.PRODUCT_UPDATED) fetchProducts();
+      if (event === syncEvent.PRODUCT_UPDATED) fetchNavigation();
       if (event === syncEvent.SETTING_UPDATED) refreshSettings();
     });
     return unsub;
-  }, [fetchProducts, refreshSettings]);
+  }, [fetchNavigation, fetchProducts, refreshSettings]);
 
   const [isPaused, setIsPaused] = useState(false);
   const [dragged, setDragged] = useState(false);
@@ -140,37 +194,21 @@ export default function HomePage() {
             {HERO_SLIDES.map((slide, i) => {
               const bannerImage = getFirstImage(slide);
               const Content = (
-                <div className="w-full h-full relative overflow-hidden bg-gradient-to-br from-slate-950 via-brand-blue to-brand-teal">
+                <div className="w-full h-full relative overflow-hidden bg-surface-muted">
                   {bannerImage ? (
-                    <img
-                      src={getImageUrl(bannerImage, slide.imageFolder || "product")}
-                      alt={slide.altText || slide.title || "Banner"}
+                    <SafeImage
+                      src={getImageUrl(bannerImage, slide.imageFolder || "banner")}
+                      alt={`Banner ${i + 1}`}
                       className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+                      fallbackClassName="absolute inset-0 w-full h-full bg-surface-muted"
+                      loading={i === 0 ? "eager" : "lazy"}
                     />
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-end pr-8 md:pr-20 text-white/10">
-                      <span className="material-symbols-outlined" style={{ fontSize: 160 }}>sports_tennis</span>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-text-muted">
+                      <span className="material-symbols-outlined" style={{ fontSize: 56 }}>image_not_supported</span>
+                      <span className="mt-2 text-sm font-semibold">Banner chưa có ảnh</span>
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
-                  <div className="relative z-10 h-full max-w-[1280px] mx-auto px-5 md:px-8 flex items-center">
-                    <div className="max-w-xl text-white">
-                      <p className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-xs md:text-sm font-bold backdrop-blur-sm mb-4">
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>verified</span>
-                        HAN SPORTS
-                      </p>
-                      <h1 className="text-3xl md:text-5xl lg:text-6xl font-black leading-tight">
-                        {slide.title || "Trang bị thể thao chính hãng"}
-                      </h1>
-                      <p className="mt-4 text-sm md:text-lg text-white/80 leading-relaxed max-w-lg">
-                        {slide.subtitle || "Sản phẩm cầu lông và thể thao chất lượng cho luyện tập, thi đấu và phong cách sống năng động."}
-                      </p>
-                      <div className="mt-6 inline-flex items-center gap-2 bg-white text-text-primary rounded-xl px-5 py-3 text-sm md:text-base font-extrabold shadow-lg">
-                        {slide.cta || "Mua ngay"}
-                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_forward</span>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               );
 
@@ -214,7 +252,7 @@ export default function HomePage() {
           <h2 className="text-heading font-bold text-text-primary">Danh mục sản phẩm</h2>
         </div>
         <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-          {CATEGORIES.map(({ name, icon, path, color }) => (
+          {displayCategories.map(({ name, icon, path, color }) => (
             <Link key={name} to={path}
               className="flex flex-col items-center gap-3 p-4 rounded-xl bg-white border border-surface-border hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 group"
             >
@@ -269,13 +307,7 @@ export default function HomePage() {
         </div>
 
         <div className="flex flex-wrap border border-surface-border bg-white rounded-t-xl overflow-hidden shadow-sm">
-          <button
-            onClick={() => setActiveTab("all")}
-            className={`flex-1 min-w-[120px] py-4 px-4 text-sm font-bold transition-all border-r border-surface-border last:border-0 ${activeTab === "all" ? "bg-gradient-to-r from-brand-green to-brand-blue text-white" : "text-text-primary hover:bg-surface-muted"}`}
-          >
-            Tất cả
-          </button>
-          {CATEGORIES.map((cat) => (
+          {displayCategories.map((cat) => (
             <button
               key={cat.name}
               onClick={() => setActiveTab(cat.name)}
@@ -308,7 +340,7 @@ export default function HomePage() {
             <span className="material-symbols-outlined">chevron_right</span>
           </button>
 
-          {loading ? (
+          {categoryLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {[...Array(5)].map((_, i) => <div key={i} className="skeleton h-64 rounded-lg" />)}
             </div>
@@ -318,29 +350,31 @@ export default function HomePage() {
               id="tabbed-product-scroll"
               className="flex overflow-x-auto gap-4 md:gap-6 hide-scrollbar scroll-smooth py-2 px-1 animate-fade-up"
             >
-              {products.length > 0 ? (
-                products.filter(p => activeTab === "all" || p.category === activeTab).map((p) => (
+              {categoryProducts.length > 0 ? (
+                categoryProducts.map((p) => (
                   <div key={p.id} className="min-w-[180px] md:min-w-[240px] max-w-[240px] bg-white rounded-2xl p-3 md:p-4 hover:shadow-[0_20px_50px_rgba(29,78,216,0.15)] hover:-translate-y-2 transition-all duration-500 group/card flex flex-col border border-surface-border hover:border-brand-blue/30 relative">
-                    <div className="relative aspect-square mb-4 overflow-hidden rounded-xl bg-surface-soft">
-                      {getFirstImage(p) ? (
-                        <img
-                          src={getImageUrl(getFirstImage(p))}
-                          alt={p.name}
-                          className="w-full h-full object-contain transform group-hover/card:scale-110 transition-transform duration-700 ease-out"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-text-muted">
-                          <span className="material-symbols-outlined" style={{ fontSize: 48 }}>image_not_supported</span>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-brand-blue/5 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
-                    </div>
-                    <h3 className="text-sm font-bold text-text-primary mb-2 line-clamp-2 flex-grow h-10 group-hover:text-brand-blue transition-colors">
-                      {p.name}
-                    </h3>
-                    <div className="mt-auto flex items-center justify-between">
-                      <p className="text-brand-blue font-black text-base md:text-lg">{formatVND(p.price)}</p>
-                    </div>
+                    <Link to={`/products/${p.id}`} className="flex flex-col flex-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue rounded-xl">
+                      <div className="relative aspect-square mb-4 overflow-hidden rounded-xl bg-surface-soft">
+                        {getFirstImage(p) ? (
+                          <img
+                            src={getImageUrl(getFirstImage(p))}
+                            alt={p.name}
+                            className="w-full h-full object-contain transform group-hover/card:scale-110 transition-transform duration-700 ease-out"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-text-muted">
+                            <span className="material-symbols-outlined" style={{ fontSize: 48 }}>image_not_supported</span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-brand-blue/5 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
+                      </div>
+                      <h3 className="text-sm font-bold text-text-primary mb-2 line-clamp-2 flex-grow h-10 group-hover/card:text-brand-blue transition-colors">
+                        {p.name}
+                      </h3>
+                      <div className="mt-auto flex items-center justify-between">
+                        <p className="text-brand-blue font-black text-base md:text-lg">{formatVND(p.price)}</p>
+                      </div>
+                    </Link>
 
                     <button
                       onClick={() => handleAddCart(p)}
@@ -382,4 +416,45 @@ export default function HomePage() {
       </section>
     </div>
   );
+}
+
+function buildDisplayCategories(catalogGroups, configuredCategories) {
+  if (catalogGroups.length === 0) {
+    return configuredCategories;
+  }
+
+  return catalogGroups.map((group, index) => {
+    const configured = configuredCategories.find(
+      (category) => category.name?.trim().toLowerCase() === group.name.trim().toLowerCase(),
+    );
+    return {
+      name: group.name,
+      productCount: group.productCount,
+      icon: configured?.icon || categoryIcon(group.name),
+      color: configured?.color || categoryColor(index),
+      path: productCategoryPath(group.name),
+    };
+  });
+}
+
+function productCategoryPath(category) {
+  return `/shop?${new URLSearchParams({ category }).toString()}`;
+}
+
+function categoryIcon(category) {
+  const normalized = category.toLowerCase();
+  if (normalized.includes("vợt")) return "sports_tennis";
+  if (normalized.includes("balo")) return "backpack";
+  if (normalized.includes("túi")) return "shopping_bag";
+  if (normalized.includes("giày")) return "footprint";
+  if (normalized.includes("áo") || normalized.includes("quần")) return "dry_cleaning";
+  return "category";
+}
+
+function categoryColor(index) {
+  return [
+    "bg-brand-blue-light text-brand-blue",
+    "bg-brand-green-light text-brand-green",
+    "bg-brand-teal-light text-brand-teal",
+  ][index % 3];
 }

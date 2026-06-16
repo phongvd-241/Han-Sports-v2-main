@@ -5,6 +5,7 @@ import com.javaweb.domain.ProductImage;
 import com.javaweb.domain.request.ReqProductDTO;
 import com.javaweb.domain.response.ResultPaginationDTO;
 import com.javaweb.domain.response.product.ResCreateProductDTO;
+import com.javaweb.domain.response.product.ResProductNavigationDTO;
 import com.javaweb.domain.response.product.ResProductDTO;
 import com.javaweb.domain.response.product.ResUpdateProductDTO;
 import com.javaweb.repository.ProductImageRepository;
@@ -124,12 +125,20 @@ public class ProductService {
     public ResultPaginationDTO fetchAllProducts(Specification<Product> spec, Pageable pageable,
                                                 boolean includeInactive, String query,
                                                 String brand, String target, Long minPrice, Long maxPrice){
+        return fetchAllProducts(spec, pageable, includeInactive, query, brand, target, null, minPrice, maxPrice);
+    }
+
+    @Transactional(readOnly = true)
+    public ResultPaginationDTO fetchAllProducts(Specification<Product> spec, Pageable pageable,
+                                                boolean includeInactive, String query,
+                                                String brand, String target, String category,
+                                                Long minPrice, Long maxPrice){
         Specification<Product> activeSpec = (root, criteriaQuery, criteriaBuilder) ->
                 criteriaBuilder.isTrue(root.get("active"));
         Specification<Product> finalSpec = includeInactive ? spec : combine(spec, activeSpec);
         Specification<Product> searchSpec = productSearch(query);
         finalSpec = combine(finalSpec, searchSpec);
-        finalSpec = combine(finalSpec, productFilters(brand, target, minPrice, maxPrice));
+        finalSpec = combine(finalSpec, productFilters(brand, target, category, minPrice, maxPrice));
         Page<Product> products = this.productRepository.findAll(finalSpec, pageable);
         ResultPaginationDTO resultPaginationDTO = new ResultPaginationDTO();
         ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
@@ -148,6 +157,34 @@ public class ProductService {
         resultPaginationDTO.setResult(listProduct);
 
         return resultPaginationDTO;
+    }
+
+    @Transactional(readOnly = true)
+    public ResProductNavigationDTO fetchProductNavigation() {
+        Map<String, NavigationCategoryAccumulator> grouped = new LinkedHashMap<>();
+
+        for (Object[] row : this.productRepository.findActiveCatalogNavigation()) {
+            String category = (String) row[0];
+            String brand = (String) row[1];
+            long productCount = ((Number) row[2]).longValue();
+
+            NavigationCategoryAccumulator accumulator = grouped.computeIfAbsent(
+                    category,
+                    ignored -> new NavigationCategoryAccumulator()
+            );
+            accumulator.productCount += productCount;
+            accumulator.brands.add(new ResProductNavigationDTO.BrandItem(brand, productCount));
+        }
+
+        List<ResProductNavigationDTO.CategoryItem> categories = grouped.entrySet().stream()
+                .map(entry -> new ResProductNavigationDTO.CategoryItem(
+                        entry.getKey(),
+                        entry.getValue().productCount,
+                        entry.getValue().brands
+                ))
+                .toList();
+
+        return new ResProductNavigationDTO(categories);
     }
 
     private Specification<Product> combine(Specification<Product> first, Specification<Product> second) {
@@ -174,7 +211,8 @@ public class ProductService {
         );
     }
 
-    private Specification<Product> productFilters(String brand, String target, Long minPrice, Long maxPrice) {
+    private Specification<Product> productFilters(String brand, String target, String category,
+                                                  Long minPrice, Long maxPrice) {
         Specification<Product> result = null;
         if (brand != null && !brand.isBlank()) {
             String normalizedBrand = brand.trim().toLowerCase(Locale.ROOT);
@@ -186,6 +224,11 @@ public class ProductService {
             result = combine(result, (root, criteriaQuery, criteriaBuilder) ->
                     criteriaBuilder.equal(criteriaBuilder.lower(root.get("target")), normalizedTarget));
         }
+        if (category != null && !category.isBlank()) {
+            String normalizedCategory = category.trim().toLowerCase(Locale.ROOT);
+            result = combine(result, (root, criteriaQuery, criteriaBuilder) ->
+                    criteriaBuilder.equal(criteriaBuilder.lower(root.get("category")), normalizedCategory));
+        }
         if (minPrice != null && minPrice >= 0) {
             result = combine(result, (root, criteriaQuery, criteriaBuilder) ->
                     criteriaBuilder.greaterThanOrEqualTo(root.get("price"), minPrice));
@@ -195,6 +238,11 @@ public class ProductService {
                     criteriaBuilder.lessThanOrEqualTo(root.get("price"), maxPrice));
         }
         return result;
+    }
+
+    private static class NavigationCategoryAccumulator {
+        private long productCount;
+        private final List<ResProductNavigationDTO.BrandItem> brands = new ArrayList<>();
     }
     public boolean existsByName(String name){
         return this.productRepository.existsByName(name);

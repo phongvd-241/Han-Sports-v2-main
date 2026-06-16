@@ -5,6 +5,7 @@ import com.javaweb.domain.request.ReqProductDTO;
 import com.javaweb.domain.response.ResultPaginationDTO;
 import com.javaweb.domain.response.product.ResCreateProductDTO;
 import com.javaweb.domain.response.product.ResProductImportDTO;
+import com.javaweb.domain.response.product.ResProductNavigationDTO;
 import com.javaweb.domain.response.product.ResProductDTO;
 import com.javaweb.domain.response.product.ResUpdateProductDTO;
 import com.javaweb.service.ProductImportService;
@@ -78,6 +79,12 @@ public class ProductController {
         return ResponseEntity.ok().body(this.productService.fetchProductById(id));
     }
 
+    @GetMapping("/products/navigation")
+    @ApiMessage("get product catalog navigation")
+    public ResponseEntity<ResProductNavigationDTO> getProductNavigation() {
+        return ResponseEntity.ok(this.productService.fetchProductNavigation());
+    }
+
     @GetMapping("/products")
     @ApiMessage("get all products")
     public ResponseEntity<ResultPaginationDTO> getAllProducts(@Filter Specification<Product> spec,
@@ -86,13 +93,14 @@ public class ProductController {
                                                               @RequestParam(name = "q", required = false) String query,
                                                               @RequestParam(name = "brand", required = false) String brand,
                                                               @RequestParam(name = "target", required = false) String target,
+                                                              @RequestParam(name = "category", required = false) String category,
                                                               @RequestParam(name = "minPrice", required = false) Long minPrice,
                                                               @RequestParam(name = "maxPrice", required = false) Long maxPrice,
                                                               Authentication authentication){
         boolean canIncludeInactive = includeInactive && isAdmin(authentication);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(this.productService.fetchAllProducts(
-                        spec, pageable, canIncludeInactive, query, brand, target, minPrice, maxPrice));
+                        spec, pageable, canIncludeInactive, query, brand, target, category, minPrice, maxPrice));
     }
 
     private boolean isAdmin(Authentication authentication) {

@@ -55,10 +55,6 @@ export default function ProductImportPanel({ onImported }) {
             </span>
             Import sản phẩm bằng Excel/CSV
           </h2>
-          <p className="text-xs text-text-muted mt-1">
-            Hỗ trợ sheet SanPham_ChuanHoa, kiểm tra thử trước khi ghi dữ liệu.
-            Sản phẩm DRAFT sẽ được import ở trạng thái ẩn.
-          </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2">

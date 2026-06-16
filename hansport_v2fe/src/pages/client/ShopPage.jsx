@@ -23,10 +23,11 @@ export default function ShopPage() {
   const { setCart } = useCartStore();
   const { getSetting, refreshSettings } = useSettingStore();
   
-  const BRANDS = getSetting("BRANDS", ["Yonex", "Victor", "Lining", "Kawasaki", "Mizuno", "Apacs", "Flypower", "Kumpoo", "Khác"]);
+  const configuredBrands = getSetting("BRANDS", ["Yonex", "Victor", "Li-Ning", "VNB"]);
   const TARGETS = getSetting("TARGETS", ["Nam", "Nữ", "Unisex", "Trẻ em"]);
 
   const [products, setProducts] = useState([]);
+  const [catalogCategories, setCatalogCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
@@ -35,16 +36,23 @@ export default function ShopPage() {
 
   const page = parseInt(searchParams.get("page") || "0");
   const q = searchParams.get("q") || "";
+  const category = searchParams.get("category") || "";
   const brand = searchParams.get("brand") || "";
   const target = searchParams.get("target") || "";
   const priceKey = searchParams.get("price") || "";
   const selectedPrice = PRICE_RANGES.find((r) => r.label === priceKey);
+  const selectedCategory = catalogCategories.find((item) => item.name === category);
+  const catalogBrands = (selectedCategory ? selectedCategory.brands : catalogCategories.flatMap((item) => item.brands || []))
+    .map((item) => item.name)
+    .filter((name, index, values) => name && values.indexOf(name) === index);
+  const brandsForFilter = catalogBrands.length > 0 ? catalogBrands : configuredBrands;
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
       const params = { page, size: 12, sort: "id,asc" };
       if (q) params.q = q;
+      if (category) params.category = category;
       if (brand) params.brand = brand;
       if (target) params.target = target;
       if (selectedPrice) {
@@ -61,9 +69,25 @@ export default function ShopPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, q, brand, target, selectedPrice]);
+  }, [page, q, category, brand, target, selectedPrice]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+  useEffect(() => {
+    let active = true;
+    productApi.getNavigation()
+      .then((response) => {
+        const data = response.data?.data || response.data;
+        if (active && Array.isArray(data?.categories)) {
+          setCatalogCategories(data.categories);
+        }
+      })
+      .catch((error) => console.error("Không thể tải danh mục sản phẩm", error));
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const unsub = onSync((event) => {
@@ -119,13 +143,35 @@ export default function ShopPage() {
         </h3>
 
         <div className="mb-5">
+          <p className="text-sm font-semibold text-text-secondary mb-3 uppercase tracking-wide">Danh mục</p>
+          <div className="flex flex-col gap-1">
+            <button
+              onClick={() => setParam("category", "")}
+              className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${!category ? "bg-brand-blue-light text-brand-blue font-semibold" : "text-text-secondary hover:bg-surface-muted"}`}
+            >
+              Tất cả danh mục
+            </button>
+            {catalogCategories.map((item) => (
+              <button
+                key={item.name}
+                onClick={() => setParam("category", category === item.name ? "" : item.name)}
+                className={`text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center justify-between gap-2 ${category === item.name ? "bg-brand-blue-light text-brand-blue font-semibold" : "text-text-secondary hover:bg-surface-muted"}`}
+              >
+                <span>{item.name}</span>
+                <span className="text-xs text-text-muted">{item.productCount}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mb-5">
           <p className="text-sm font-semibold text-text-secondary mb-3 uppercase tracking-wide">Thương hiệu</p>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setParam("brand", "")}
               className={`px-3 py-1.5 rounded-pill text-xs font-semibold transition-all ${!brand ? "text-white bg-gradient-to-r from-brand-green to-brand-blue" : "border border-surface-border text-text-secondary hover:border-brand-blue hover:text-brand-blue"}`}
             >Tất cả</button>
-            {BRANDS.map((b) => (
+            {brandsForFilter.map((b) => (
               <button key={b} onClick={() => setParam("brand", brand === b ? "" : b)}
                 className={`px-3 py-1.5 rounded-pill text-xs font-semibold transition-all ${brand === b ? "text-white bg-gradient-to-r from-brand-green to-brand-blue" : "border border-surface-border text-text-secondary hover:border-brand-blue hover:text-brand-blue"}`}>
                 {b}
@@ -166,7 +212,7 @@ export default function ShopPage() {
           </div>
         </div>
 
-        {(brand || target || priceKey) && (
+        {(category || brand || target || priceKey) && (
           <button
             onClick={() => { setSearchParams({ page: "0" }); }}
             className="mt-4 w-full py-2 rounded-lg text-sm text-danger font-semibold hover:bg-red-50 transition-all border border-red-200 flex items-center justify-center gap-1"
@@ -188,7 +234,7 @@ export default function ShopPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-heading font-bold text-text-primary">
-                {q ? `Kết quả tìm kiếm: "${q}"` : "Tất cả sản phẩm"}
+                {getShopTitle({ q, category, brand })}
               </h1>
               {!loading && (
                 <p className="text-text-muted text-sm mt-1">
@@ -274,4 +320,12 @@ export default function ShopPage() {
       </div>
     </div>
   );
+}
+
+function getShopTitle({ q, category, brand }) {
+  if (q) return `Kết quả tìm kiếm: "${q}"`;
+  if (category && brand) return `${category} ${brand}`;
+  if (category) return category;
+  if (brand) return `Sản phẩm ${brand}`;
+  return "Tất cả sản phẩm";
 }
