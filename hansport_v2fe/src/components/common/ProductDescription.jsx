@@ -1,3 +1,9 @@
+function escapeAttribute(value) {
+  return String(value || "")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function parseInline(text) {
   let html = text || "";
   
@@ -8,13 +14,13 @@ function parseInline(text) {
     .replace(/>/g, "&gt;");
 
   // Parse images: ![alt](url)
-  html = html.replace(/!\[(.*?)\]\((.*?)\)/g, (match, alt, url) => {
-    return `<img src="${url}" alt="${alt}" class="w-full max-w-2xl rounded-xl shadow-md mx-auto my-6 block object-contain" />`;
+  html = html.replace(/!\[([^\]]*)\]\(((?:[^()\s]+|\([^)]*\))+)\)/g, (match, alt, url) => {
+    return `<img src="${escapeAttribute(url)}" alt="${escapeAttribute(alt)}" class="w-full max-w-2xl rounded-xl shadow-md mx-auto my-6 block object-contain" />`;
   });
 
   // Parse links: [text](url)
-  html = html.replace(/\[(.*?)\]\((.*?)\)/g, (match, linkText, url) => {
-    return `<a href="${url}" class="text-brand-blue hover:text-brand-blue-dark hover:underline font-semibold transition-colors" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+  html = html.replace(/\[([^\]]*)\]\(((?:[^()\s]+|\([^)]*\))+)\)/g, (match, linkText, url) => {
+    return `<a href="${escapeAttribute(url)}" class="text-brand-blue hover:text-brand-blue-dark hover:underline font-semibold transition-colors" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
   });
 
   // Bold text: **text**

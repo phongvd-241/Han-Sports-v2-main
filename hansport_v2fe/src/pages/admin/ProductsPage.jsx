@@ -58,8 +58,9 @@ export default function ProductsPage() {
   const [totalElements, setTotalElements] = useState(0);
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState([]);
 
-  const [modal, setModal] = useState(null); // null | "add" | "edit" | "delete" | "import"
+  const [modal, setModal] = useState(null); // null | "add" | "edit" | "delete" | "import" | "delete_bulk"
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -90,6 +91,10 @@ export default function ProductsPage() {
   }, [page, search]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [page, search]);
 
   const openAdd = () => { setForm(EMPTY_FORM); setSelectedProduct(null); setModal("add"); };
   const openEdit = (p) => {
@@ -290,6 +295,56 @@ export default function ProductsPage() {
     finally { setSaving(false); }
   };
 
+  const handleDeleteBulk = async () => {
+    setSaving(true);
+    try {
+      await Promise.all(selectedIds.map((id) => productApi.remove(id)));
+      showToast(`Đã xóa ${selectedIds.length} sản phẩm thành công!`);
+      setSelectedIds([]);
+      closeModal();
+      fetchProducts();
+      notifySync(syncEvent.PRODUCT_UPDATED);
+    } catch (err) {
+      console.error(err);
+      showToast("Xóa sản phẩm thất bại!", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedIds(products.map((p) => p.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectRow = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const isAllSelected = products.length > 0 && selectedIds.length === products.length;
+
+  const dynamicColumns = [
+    {
+      key: "select",
+      label: (
+        <input
+          type="checkbox"
+          checked={isAllSelected}
+          onChange={handleSelectAll}
+          className="w-4 h-4 rounded border-surface-border text-brand-blue focus:ring-brand-blue cursor-pointer"
+        />
+      ),
+      className: "px-4 py-3 text-center w-10",
+      skeletonClassName: "h-8"
+    },
+    ...PRODUCT_COLUMNS
+  ];
+
 
   const lowStockOnPage = products.filter((item) => (item.quantity || 0) > 0 && (item.quantity || 0) <= 5).length;
   const outOfStockOnPage = products.filter((item) => (item.quantity || 0) <= 0).length;
@@ -332,14 +387,26 @@ export default function ProductsPage() {
             className="input-field pl-10 py-2 text-sm"
           />
         </div>
-        <button type="button" onClick={() => setModal("import")} className="btn-outline py-2 px-4 text-sm">
-          <span className="material-symbols-outlined" style={{ fontSize: 17 }}>upload_file</span>
-          Import Excel/CSV
-        </button>
+        <div className="flex items-center gap-2">
+          {selectedIds.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setModal("delete_bulk")}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-white bg-danger hover:opacity-90 transition-all duration-200 text-sm"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 17 }}>delete</span>
+              Xóa {selectedIds.length} đã chọn
+            </button>
+          )}
+          <button type="button" onClick={() => setModal("import")} className="btn-outline py-2 px-4 text-sm">
+            <span className="material-symbols-outlined" style={{ fontSize: 17 }}>upload_file</span>
+            Import Excel/CSV
+          </button>
+        </div>
       </AdminToolbar>
 
       <DataTable
-        columns={PRODUCT_COLUMNS}
+        columns={dynamicColumns}
         loading={loading}
         isEmpty={products.length === 0}
         emptyIcon="inventory_2"
@@ -350,6 +417,14 @@ export default function ProductsPage() {
       >
         {products.map((p, i) => (
           <tr key={p.id} className="hover:bg-surface-soft transition-colors">
+            <td className="px-4 py-3 text-center w-10">
+              <input
+                type="checkbox"
+                checked={selectedIds.includes(p.id)}
+                onChange={() => handleSelectRow(p.id)}
+                className="w-4 h-4 rounded border-surface-border text-brand-blue focus:ring-brand-blue cursor-pointer"
+              />
+            </td>
             <td className="px-4 py-3 text-text-muted text-xs">{page * 10 + i + 1}</td>
             <td className="px-4 py-3">
               <div className="w-12 h-12 rounded-lg bg-surface-muted overflow-hidden flex-shrink-0">
@@ -610,6 +685,18 @@ export default function ProductsPage() {
           loading={saving}
           onCancel={closeModal}
           onConfirm={handleDelete}
+        />
+      )}
+
+      {modal === "delete_bulk" && selectedIds.length > 0 && (
+        <ConfirmDialog
+          title="Xác nhận xóa hàng loạt?"
+          description={`Bạn sắp xóa ${selectedIds.length} sản phẩm đã chọn. Hành động này không thể hoàn tác.`}
+          icon="delete_forever"
+          confirmLabel="Xóa các sản phẩm"
+          loading={saving}
+          onCancel={closeModal}
+          onConfirm={handleDeleteBulk}
         />
       )}
     </div>

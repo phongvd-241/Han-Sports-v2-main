@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { productApi } from "../../api/productApi";
@@ -18,6 +18,41 @@ function normalizeOptionList(value) {
     return value.split(/[;,|\n\r]+/).map((item) => item.trim()).filter(Boolean);
   }
   return [];
+}
+
+function toSearchSlug(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function safeDecodeUrl(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function imageMatchesColor(image, color) {
+  const colorSlug = toSearchSlug(color);
+  if (!colorSlug) return false;
+  const imageSlug = toSearchSlug(safeDecodeUrl(String(image || "").split("?")[0]));
+  return new RegExp(`${escapeRegex(colorSlug)}(?:$|-[0-9])`).test(imageSlug);
+}
+
+function getGalleryImagesForColor(images, color) {
+  const matchedImages = images.filter((image) => imageMatchesColor(image, color));
+  return matchedImages.length > 0 ? matchedImages : images;
 }
 
 export default function ProductDetailPage() {
@@ -41,11 +76,18 @@ export default function ProductDetailPage() {
   const [rotation, setRotation] = useState(0);
 
   const imageVersion = product?.updatedAt || product?.createdAt || product?.id;
-  const imagesArr = product ? (
-    Array.isArray(product.images)
+  const imagesArr = useMemo(() => {
+    if (!product) return [];
+    return Array.isArray(product.images)
       ? product.images.map((item) => (typeof item === "string" ? item : (item.imageUrl || item)))
-      : (product.image ? [product.image] : [])
-  ) : [];
+      : (product.image ? [product.image] : []);
+  }, [product]);
+  const colorOptions = useMemo(() => normalizeOptionList(product?.colorOptions), [product?.colorOptions]);
+  const sizeOptions = useMemo(() => normalizeOptionList(product?.sizeOptions), [product?.sizeOptions]);
+  const galleryImages = useMemo(
+    () => getGalleryImagesForColor(imagesArr, selectedColor),
+    [imagesArr, selectedColor]
+  );
 
   useEffect(() => {
     setLoading(true);
@@ -103,6 +145,13 @@ export default function ProductDetailPage() {
   }, [product]);
 
   useEffect(() => {
+    if (!product || galleryImages.length === 0) return;
+    if (!galleryImages.includes(activeImage)) {
+      setActiveImage(galleryImages[0]);
+    }
+  }, [activeImage, galleryImages, product]);
+
+  useEffect(() => {
     if (isLightboxOpen) {
       document.body.style.overflow = "hidden";
     } else {
@@ -114,17 +163,17 @@ export default function ProductDetailPage() {
   }, [isLightboxOpen]);
 
   const prevImage = () => {
-    if (!imagesArr || imagesArr.length === 0) return;
-    const idx = imagesArr.indexOf(activeImage);
-    const nextIdx = idx <= 0 ? imagesArr.length - 1 : idx - 1;
-    setActiveImage(imagesArr[nextIdx]);
+    if (!galleryImages || galleryImages.length === 0) return;
+    const idx = galleryImages.indexOf(activeImage);
+    const nextIdx = idx <= 0 ? galleryImages.length - 1 : idx - 1;
+    setActiveImage(galleryImages[nextIdx]);
   };
 
   const nextImage = () => {
-    if (!imagesArr || imagesArr.length === 0) return;
-    const idx = imagesArr.indexOf(activeImage);
-    const nextIdx = (idx + 1) % imagesArr.length;
-    setActiveImage(imagesArr[nextIdx]);
+    if (!galleryImages || galleryImages.length === 0) return;
+    const idx = galleryImages.indexOf(activeImage);
+    const nextIdx = (idx + 1) % galleryImages.length;
+    setActiveImage(galleryImages[nextIdx]);
   };
 
 
@@ -181,8 +230,6 @@ export default function ProductDetailPage() {
   );
 
   const imageUrl = getImageUrl(activeImage, "product", imageVersion);
-  const colorOptions = normalizeOptionList(product.colorOptions);
-  const sizeOptions = normalizeOptionList(product.sizeOptions);
   const originalPrice = Number(product.originalPrice || 0);
   const hasSalePrice = originalPrice > Number(product.price || 0);
   const salePercent = hasSalePrice ? Math.round(((originalPrice - product.price) / originalPrice) * 100) : 0;
@@ -199,20 +246,48 @@ export default function ProductDetailPage() {
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-[450px_1fr] gap-10 mb-12">
-          <div className="card p-4 md:p-6" style={{ minHeight: 420 }}>
-            <div className={imagesArr.length > 1
-              ? "grid grid-cols-1 sm:grid-cols-[76px_minmax(0,1fr)] gap-4"
-              : "block"
-            }>
-              {imagesArr.length > 1 && (
-                <div className="order-2 sm:order-1 flex sm:flex-col gap-2 overflow-x-auto sm:overflow-y-auto sm:max-h-[430px] hide-scrollbar">
-                  {imagesArr.map((img, idx) => (
+          <div className="card p-4 md:p-6">
+            <div className="flex flex-col gap-4">
+              <div className="relative w-full aspect-square rounded-lg bg-white flex items-center justify-center overflow-hidden border border-surface-border/50">
+                {imageUrl ? (
+                  <>
+                    {galleryImages.length > 1 && (
+                      <button type="button" onClick={prevImage} aria-label="Ảnh trước" className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center hover:bg-white shadow-card">
+                        <span className="material-symbols-outlined">chevron_left</span>
+                      </button>
+                    )}
+                    <div onClick={() => setIsLightboxOpen(true)} className="absolute inset-0 cursor-zoom-in">
+                      <SafeImage
+                        src={imageUrl}
+                        alt={product.name}
+                        className="absolute inset-0 w-full h-full object-contain p-2"
+                        fallbackClassName="absolute inset-0"
+                        loading="eager"
+                      />
+                    </div>
+                    {galleryImages.length > 1 && (
+                      <button type="button" onClick={nextImage} aria-label="Ảnh tiếp theo" className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center hover:bg-white shadow-card">
+                        <span className="material-symbols-outlined">chevron_right</span>
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center text-text-muted">
+                    <span className="material-symbols-outlined" style={{ fontSize: 80 }}>image_not_supported</span>
+                    <p className="mt-2 text-sm">Chưa có ảnh sản phẩm</p>
+                  </div>
+                )}
+              </div>
+
+              {galleryImages.length > 1 && (
+                <div className="flex flex-row gap-2 overflow-x-auto hide-scrollbar w-full py-1">
+                  {galleryImages.map((img, idx) => (
                     <button
                       key={`${img}-${idx}`}
                       type="button"
                       onClick={() => setActiveImage(img)}
                       aria-label={`Xem ảnh ${idx + 1}`}
-                      className={`w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-lg overflow-hidden flex-shrink-0 border-2 bg-white transition-colors ${
+                      className={`w-[72px] h-[72px] rounded-lg overflow-hidden flex-shrink-0 border-2 bg-white transition-colors ${
                         activeImage === img ? "border-brand-blue" : "border-surface-border hover:border-brand-blue/50"
                       }`}
                     >
@@ -226,36 +301,6 @@ export default function ProductDetailPage() {
                   ))}
                 </div>
               )}
-              <div className={`${imagesArr.length > 1 ? "order-1 sm:order-2" : ""} relative w-full min-h-[340px] md:min-h-[430px] rounded-lg bg-white flex items-center justify-center overflow-hidden`}>
-              {imageUrl ? (
-                <>
-                  {imagesArr.length > 1 && (
-                    <button type="button" onClick={prevImage} aria-label="Ảnh trước" className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center hover:bg-white shadow-card">
-                      <span className="material-symbols-outlined">chevron_left</span>
-                    </button>
-                  )}
-                  <div onClick={() => setIsLightboxOpen(true)} className="absolute inset-0 cursor-zoom-in">
-                    <SafeImage
-                      src={imageUrl}
-                      alt={product.name}
-                      className="absolute inset-0 w-full h-full object-contain p-2"
-                      fallbackClassName="absolute inset-0"
-                      loading="eager"
-                    />
-                  </div>
-                  {imagesArr.length > 1 && (
-                    <button type="button" onClick={nextImage} aria-label="Ảnh tiếp theo" className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center hover:bg-white shadow-card">
-                      <span className="material-symbols-outlined">chevron_right</span>
-                    </button>
-                  )}
-                </>
-              ) : (
-                <div className="flex flex-col items-center text-text-muted">
-                  <span className="material-symbols-outlined" style={{ fontSize: 80 }}>image_not_supported</span>
-                  <p className="mt-2 text-sm">Chưa có ảnh sản phẩm</p>
-                </div>
-              )}
-              </div>
             </div>
           </div>
 
@@ -311,14 +356,15 @@ export default function ProductDetailPage() {
                 <div className="flex flex-wrap gap-2">
                   {colorOptions.map((color, index) => {
                     const isSelected = selectedColor === color;
-                    const previewImage = imagesArr[index] || activeImage;
+                    const previewImage = getGalleryImagesForColor(imagesArr, color)[0] || imagesArr[index] || activeImage;
                     return (
                       <button
                         key={color}
                         type="button"
                         onClick={() => {
                           setSelectedColor(color);
-                          if (imagesArr[index]) setActiveImage(imagesArr[index]);
+                          const nextGallery = getGalleryImagesForColor(imagesArr, color);
+                          if (nextGallery[0]) setActiveImage(nextGallery[0]);
                         }}
                         className={`min-w-[132px] rounded-lg border bg-white p-2 text-left transition-all ${
                           isSelected
@@ -499,7 +545,7 @@ export default function ProductDetailPage() {
       {isLightboxOpen && (
         <div className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between select-none">
           <div className="w-full flex items-center justify-between p-4 bg-gradient-to-b from-black/50 to-transparent text-white z-10">
-            <div className="text-sm font-semibold">{imagesArr.indexOf(activeImage) + 1} / {imagesArr.length}</div>
+            <div className="text-sm font-semibold">{galleryImages.indexOf(activeImage) + 1} / {galleryImages.length}</div>
             <div className="flex items-center gap-2">
               <button type="button" onClick={() => setRotation(r => r - 90)} className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors">
                 <span className="material-symbols-outlined">rotate_left</span>
@@ -525,7 +571,7 @@ export default function ProductDetailPage() {
           <div className="flex-1 relative flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0" onClick={() => setIsLightboxOpen(false)} />
 
-            {imagesArr.length > 1 && (
+            {galleryImages.length > 1 && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); prevImage(); setZoomScale(1); setRotation(0); }}
@@ -543,7 +589,7 @@ export default function ProductDetailPage() {
               />
             </div>
 
-            {imagesArr.length > 1 && (
+            {galleryImages.length > 1 && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); nextImage(); setZoomScale(1); setRotation(0); }}
