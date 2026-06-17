@@ -211,13 +211,58 @@ export default function ProductsPage() {
     e.preventDefault();
     setSaving(true);
     try {
+      let finalSku = form.sku;
+      if (!finalSku || !finalSku.trim()) {
+        const randNum = Math.floor(100000 + Math.random() * 900000);
+        finalSku = `SHOPVNB-VNB${randNum}`;
+      }
+
+      const priceVal = Number(form.price);
+      let finalOriginalPrice = form.originalPrice;
+      if (!finalOriginalPrice || Number(finalOriginalPrice) <= 0) {
+        const factor = 1.2 + Math.random() * 0.4;
+        finalOriginalPrice = String(Math.floor((priceVal * factor) / 50000) * 50000);
+      }
+
+      let finalColors = form.colorOptions;
+      if (!finalColors || !finalColors.trim()) {
+        const colorList = ["Đen", "Trắng", "Xanh dương", "Đỏ", "Vàng", "Hồng", "Cam", "Tím", "Xanh lá", "Navy"];
+        const count = Math.floor(Math.random() * 2) + 1;
+        const selected = [];
+        for (let i = 0; i < count; i++) {
+          const col = colorList[Math.floor(Math.random() * colorList.length)];
+          if (!selected.includes(col)) selected.push(col);
+        }
+        finalColors = selected.join(", ");
+      }
+
+      let finalSizes = form.sizeOptions;
+      if (!finalSizes || !finalSizes.trim()) {
+        const lowercaseName = (form.name || "").toLowerCase();
+        const lowercaseCategory = (form.category || "").toLowerCase();
+        
+        if (lowercaseName.includes("vợt") || lowercaseCategory.includes("vợt")) {
+          const racketSizes = ["3U", "4U", "5U", "3U, 4U", "4U, 5U"];
+          finalSizes = racketSizes[Math.floor(Math.random() * racketSizes.length)];
+        } else if (lowercaseName.includes("giày") || lowercaseCategory.includes("giày")) {
+          const shoeSizes = ["39, 40, 41", "40, 41, 42", "41, 42, 43", "38, 39, 40"];
+          finalSizes = shoeSizes[Math.floor(Math.random() * shoeSizes.length)];
+        } else if (lowercaseName.includes("áo") || lowercaseName.includes("quần") || lowercaseCategory.includes("áo") || lowercaseCategory.includes("quần") || lowercaseCategory.includes("trang phục")) {
+          const clothingSizes = ["M, L, XL", "S, M, L", "L, XL"];
+          finalSizes = clothingSizes[Math.floor(Math.random() * clothingSizes.length)];
+        } else {
+          finalSizes = "Free Size";
+        }
+      }
+
       const payload = {
         ...form,
-        price: Number(form.price),
-        originalPrice: form.originalPrice ? Number(form.originalPrice) : null,
+        sku: finalSku,
+        price: priceVal,
+        originalPrice: Number(finalOriginalPrice),
         quantity: Number(form.quantity),
-        colorOptions: parseOptions(form.colorOptions),
-        sizeOptions: parseOptions(form.sizeOptions),
+        colorOptions: parseOptions(finalColors),
+        sizeOptions: parseOptions(finalSizes),
       };
       if (modal === "add") {
         await productApi.create(payload);
@@ -244,6 +289,8 @@ export default function ProductsPage() {
     } catch { showToast("Xóa sản phẩm thất bại!", "error"); }
     finally { setSaving(false); }
   };
+
+
   const lowStockOnPage = products.filter((item) => (item.quantity || 0) > 0 && (item.quantity || 0) <= 5).length;
   const outOfStockOnPage = products.filter((item) => (item.quantity || 0) <= 0).length;
   const withImagesOnPage = products.filter((item) => Boolean(getProductFirstImage(item))).length;

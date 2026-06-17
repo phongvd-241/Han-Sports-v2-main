@@ -36,6 +36,10 @@ export default function ProductDetailPage() {
   const [selectedSize, setSelectedSize] = useState("");
 
   const [addingCart, setAddingCart] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [zoomScale, setZoomScale] = useState(1);
+  const [rotation, setRotation] = useState(0);
+
   const imageVersion = product?.updatedAt || product?.createdAt || product?.id;
   const imagesArr = product ? (
     Array.isArray(product.images)
@@ -97,6 +101,17 @@ export default function ProductDetailPage() {
     setSelectedColor(colors[0] || "");
     setSelectedSize(sizes[0] || "");
   }, [product]);
+
+  useEffect(() => {
+    if (isLightboxOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isLightboxOpen]);
 
   const prevImage = () => {
     if (!imagesArr || imagesArr.length === 0) return;
@@ -174,8 +189,6 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-surface-soft">
-
-
       <div className="max-w-[1280px] mx-auto px-4 md:px-6 py-8">
         <nav className="flex items-center gap-2 text-sm text-text-muted mb-8">
           <Link to="/" className="hover:text-brand-blue transition-colors">Trang chủ</Link>
@@ -185,7 +198,7 @@ export default function ProductDetailPage() {
           <span className="text-text-primary font-medium line-clamp-1">{product.name}</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-[450px_1fr] gap-10 mb-12">
           <div className="card p-4 md:p-6" style={{ minHeight: 420 }}>
             <div className={imagesArr.length > 1
               ? "grid grid-cols-1 sm:grid-cols-[76px_minmax(0,1fr)] gap-4"
@@ -221,13 +234,15 @@ export default function ProductDetailPage() {
                       <span className="material-symbols-outlined">chevron_left</span>
                     </button>
                   )}
-                  <SafeImage
-                    src={imageUrl}
-                    alt={product.name}
-                    className="absolute inset-0 w-full h-full object-contain p-4 md:p-8"
-                    fallbackClassName="absolute inset-0"
-                    loading="eager"
-                  />
+                  <div onClick={() => setIsLightboxOpen(true)} className="absolute inset-0 cursor-zoom-in">
+                    <SafeImage
+                      src={imageUrl}
+                      alt={product.name}
+                      className="absolute inset-0 w-full h-full object-contain p-2"
+                      fallbackClassName="absolute inset-0"
+                      loading="eager"
+                    />
+                  </div>
                   {imagesArr.length > 1 && (
                     <button type="button" onClick={nextImage} aria-label="Ảnh tiếp theo" className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center hover:bg-white shadow-card">
                       <span className="material-symbols-outlined">chevron_right</span>
@@ -480,6 +495,70 @@ export default function ProductDetailPage() {
           </div>
         )}
       </div>
+
+      {isLightboxOpen && (
+        <div className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between select-none">
+          <div className="w-full flex items-center justify-between p-4 bg-gradient-to-b from-black/50 to-transparent text-white z-10">
+            <div className="text-sm font-semibold">{imagesArr.indexOf(activeImage) + 1} / {imagesArr.length}</div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setRotation(r => r - 90)} className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors">
+                <span className="material-symbols-outlined">rotate_left</span>
+              </button>
+              <button type="button" onClick={() => setRotation(r => r + 90)} className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors">
+                <span className="material-symbols-outlined">rotate_right</span>
+              </button>
+              <button type="button" onClick={() => setZoomScale(s => Math.max(0.5, s - 0.25))} className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors">
+                <span className="material-symbols-outlined">zoom_out</span>
+              </button>
+              <button type="button" onClick={() => setZoomScale(s => Math.min(4, s + 0.25))} className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors">
+                <span className="material-symbols-outlined">zoom_in</span>
+              </button>
+              <button type="button" onClick={() => { setZoomScale(1); setRotation(0); }} className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors">
+                <span className="material-symbols-outlined">restart_alt</span>
+              </button>
+              <button type="button" onClick={() => setIsLightboxOpen(false)} className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0" onClick={() => setIsLightboxOpen(false)} />
+
+            {imagesArr.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); prevImage(); setZoomScale(1); setRotation(0); }}
+                className="absolute left-4 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all"
+              >
+                <span className="material-symbols-outlined text-2xl">chevron_left</span>
+              </button>
+            )}
+
+            <div className="max-w-[85vw] max-h-[80vh] flex items-center justify-center transition-transform duration-200" style={{ transform: `scale(${zoomScale}) rotate(${rotation}deg)` }}>
+              <img
+                src={getImageUrl(activeImage, "product", imageVersion)}
+                alt={product.name}
+                className="max-w-full max-h-[80vh] object-contain pointer-events-none"
+              />
+            </div>
+
+            {imagesArr.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); nextImage(); setZoomScale(1); setRotation(0); }}
+                className="absolute right-4 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all"
+              >
+                <span className="material-symbols-outlined text-2xl">chevron_right</span>
+              </button>
+            )}
+          </div>
+
+          <div className="w-full text-center py-4 bg-gradient-to-t from-black/50 to-transparent text-white/70 text-xs">
+            Bấm bên ngoài để đóng. Sử dụng các nút trên thanh công cụ để xoay hoặc thu phóng.
+          </div>
+        </div>
+      )}
     </div>
   );
 }

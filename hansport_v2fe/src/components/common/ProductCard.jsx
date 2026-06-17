@@ -17,8 +17,8 @@ export default function ProductCard({ product, discountPercent, badge, onAddCart
   return (
     <div className="group card relative flex flex-col overflow-hidden">
       <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1.5">
-        {(discountPercent || salePercent > 0) && (
-          <span className="badge-danger text-[10px] px-1.5 py-0.5">-{discountPercent || salePercent}%</span>
+        {salePercent > 0 && (
+          <span className="badge-danger text-[10px] px-1.5 py-0.5">-{salePercent}%</span>
         )}
         {badge === "new" && (
           <span className="badge-green text-[10px] px-1.5 py-0.5">Mới</span>
