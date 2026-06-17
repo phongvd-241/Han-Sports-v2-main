@@ -195,6 +195,7 @@ public class ProductImportService {
             product.setSku(row.sku);
             product.setName(row.name);
             product.setPrice(row.price);
+            product.setOriginalPrice(row.originalPrice > 0 ? row.originalPrice : null);
             product.setQuantity(row.quantity);
             product.setSold(product.getId() == 0 ? 0 : product.getSold());
             product.setBrand(row.brand);
@@ -203,6 +204,8 @@ public class ProductImportService {
             product.setShortDesc(row.shortDesc);
             product.setDetailDesc(row.detailDesc);
             product.setActive(row.active);
+            product.setColorOptions(joinOptions(row.colorOptions));
+            product.setSizeOptions(joinOptions(row.sizeOptions));
             replaceImages(product, row.images);
             this.productRepository.save(product);
         }
@@ -219,6 +222,7 @@ public class ProductImportService {
         row.brand = value(values, headers, "brand");
         row.target = value(values, headers, "target");
         row.price = parseLong(value(values, headers, "price", "current_price_vnd"), -1);
+        row.originalPrice = parseLong(value(values, headers, "original_price", "original_price_vnd", "list_price", "list_price_vnd"), 0);
         row.quantity = parseLong(value(values, headers, "quantity"), 0);
         row.shortDesc = value(values, headers, "short_desc", "short_description");
         row.detailDesc = firstNonBlank(
@@ -226,6 +230,8 @@ public class ProductImportService {
                 row.shortDesc
         );
         row.images = splitImages(value(values, headers, "image_names", "images", "external_image_urls"));
+        row.colorOptions = splitOptions(value(values, headers, "color_options", "colors", "color"));
+        row.sizeOptions = splitOptions(value(values, headers, "size_options", "sizes", "size"));
         row.active = isActiveStatus(value(values, headers, "active", "publish_status"));
 
         String publishStatus = value(values, headers, "publish_status");
@@ -252,6 +258,9 @@ public class ProductImportService {
         if (row.quantity < 0) {
             row.errors.add("Quantity must not be negative");
         }
+        if (row.originalPrice > 0 && row.originalPrice <= row.price) {
+            row.warnings.add("original_price is not greater than price; storefront will not show a sale price.");
+        }
         if (row.shortDesc.isBlank()) {
             row.errors.add("Short description is required");
         }
@@ -267,6 +276,8 @@ public class ProductImportService {
         validateMaxLength(row.brand, 255, "Brand", row.errors);
         validateMaxLength(row.target, 255, "Target", row.errors);
         validateMaxLength(row.category, 255, "Category", row.errors);
+        validateMaxLength(joinOptions(row.colorOptions), 500, "Color options", row.errors);
+        validateMaxLength(joinOptions(row.sizeOptions), 255, "Size options", row.errors);
     }
 
     private void validateImages(ImportProductRow row) {
@@ -402,6 +413,33 @@ public class ProductImportService {
         return images;
     }
 
+    private List<String> splitOptions(String value) {
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+        List<String> options = new ArrayList<>();
+        for (String token : value.split("[,;|\\r\\n]+")) {
+            String option = token.trim();
+            if (!option.isBlank() && !options.contains(option)) {
+                options.add(option);
+            }
+        }
+        return options;
+    }
+
+    private String joinOptions(List<String> options) {
+        if (options == null || options.isEmpty()) {
+            return null;
+        }
+        List<String> normalized = new ArrayList<>();
+        for (String option : options) {
+            if (option != null && !option.isBlank() && !normalized.contains(option.trim())) {
+                normalized.add(option.trim());
+            }
+        }
+        return normalized.isEmpty() ? null : String.join("|", normalized);
+    }
+
     private boolean isExternalUrl(String value) {
         String normalized = value.toLowerCase(Locale.ROOT);
         return normalized.startsWith("http://") || normalized.startsWith("https://");
@@ -479,11 +517,14 @@ public class ProductImportService {
         private String brand = "";
         private String target = "";
         private long price;
+        private long originalPrice;
         private long quantity;
         private String shortDesc = "";
         private String detailDesc = "";
         private boolean active = true;
         private List<String> images = List.of();
+        private List<String> colorOptions = List.of();
+        private List<String> sizeOptions = List.of();
         private String action = "SKIP";
         private Product existingProduct;
         private final List<String> errors = new ArrayList<>();

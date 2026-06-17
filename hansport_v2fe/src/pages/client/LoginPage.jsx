@@ -11,7 +11,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPass, setShowPass] = useState(false);
-  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(!!import.meta.env.VITE_GOOGLE_CLIENT_ID);
   const googleButtonRef = useRef(null);
 
   const finishLogin = useCallback((token, user) => {
@@ -101,7 +101,11 @@ export default function LoginPage() {
       script.onload = initGoogle;
       document.body.appendChild(script);
     } else {
-      initGoogle();
+      if (window.google?.accounts?.id) {
+        initGoogle();
+      } else {
+        existingScript.addEventListener("load", initGoogle);
+      }
     }
   }, [finishLogin]);
 

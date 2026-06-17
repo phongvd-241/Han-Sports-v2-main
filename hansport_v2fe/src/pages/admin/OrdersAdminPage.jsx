@@ -222,10 +222,26 @@ export default function OrdersAdminPage() {
 
               <div className="flex flex-col gap-2 mb-4 max-h-48 overflow-y-auto hide-scrollbar">
                 {(selected.orderDetails || []).map((item, index) => (
-                  <div key={index} className="flex items-center gap-2 text-xs bg-surface-muted rounded-lg p-2">
-                    <span className="font-medium text-text-primary flex-1 line-clamp-1">{item.product?.name || item.productName || "SP"}</span>
-                    <span className="text-text-muted">x{item.quantity}</span>
-                    <span className="font-bold text-brand-blue">{formatVND(item.price * item.quantity)}</span>
+                  <div key={index} className="flex items-start gap-2 text-xs bg-surface-muted rounded-lg p-2">
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium text-text-primary line-clamp-1">{item.product?.name || item.productName || "SP"}</span>
+                      {(item.selectedColor || item.selectedSize) && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {item.selectedColor && (
+                            <span className="px-1.5 py-0.5 rounded bg-white text-[11px] text-text-secondary">
+                              Màu: {item.selectedColor}
+                            </span>
+                          )}
+                          {item.selectedSize && (
+                            <span className="px-1.5 py-0.5 rounded bg-white text-[11px] text-text-secondary">
+                              Size: {item.selectedSize}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-text-muted mt-0.5">x{item.quantity}</span>
+                    <span className="font-bold text-brand-blue mt-0.5">{formatVND(item.price * item.quantity)}</span>
                   </div>
                 ))}
               </div>

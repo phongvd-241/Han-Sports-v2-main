@@ -14,8 +14,9 @@ import { getImageUrl, formatVND } from "../../utils/constants";
 import { notifySync, syncEvent } from "../../utils/sync";
 
 const EMPTY_FORM = {
-  sku: "", name: "", price: "", quantity: "", brand: "", target: "", category: "",
+  sku: "", name: "", price: "", originalPrice: "", quantity: "", brand: "", target: "", category: "",
   shortDesc: "", detailDesc: "", active: true, images: [],
+  colorOptions: "", sizeOptions: "",
 };
 const MAX_PRODUCT_IMAGES = 8;
 
@@ -39,6 +40,12 @@ const getProductFirstImage = (p) => {
   }
   return p.image || "";
 };
+
+const optionText = (value) => Array.isArray(value) ? value.join(", ") : (value || "");
+const parseOptions = (value) => String(value || "")
+  .split(/[;,|\n\r]+/)
+  .map((item) => item.trim())
+  .filter(Boolean);
 
 export default function ProductsPage() {
   const { getSetting } = useSettingStore();
@@ -89,10 +96,12 @@ export default function ProductsPage() {
     setSelectedProduct(p);
     setForm({
       sku: p.sku || "",
-      name: p.name || "", price: String(p.price || ""), quantity: String(p.quantity || ""),
+      name: p.name || "", price: String(p.price || ""), originalPrice: p.originalPrice ? String(p.originalPrice) : "", quantity: String(p.quantity || ""),
       brand: p.brand || "", target: p.target || "", category: p.category || "",
       shortDesc: p.shortDesc || "", detailDesc: p.detailDesc || "", active: p.active ?? true,
       images: p.images ? p.images.map((it) => (typeof it === "string" ? it : (it.imageUrl || it))) : [],
+      colorOptions: optionText(p.colorOptions),
+      sizeOptions: optionText(p.sizeOptions),
     });
     if (fileRef.current) fileRef.current.value = null;
     setModal("edit");
@@ -112,6 +121,7 @@ export default function ProductsPage() {
       sku: selectedProduct.sku || "",
       name: selectedProduct.name || "",
       price: String(selectedProduct.price || ""),
+      originalPrice: selectedProduct.originalPrice ? String(selectedProduct.originalPrice) : "",
       quantity: String(selectedProduct.quantity || ""),
       brand: selectedProduct.brand || "",
       target: selectedProduct.target || "",
@@ -120,6 +130,8 @@ export default function ProductsPage() {
       detailDesc: selectedProduct.detailDesc || "",
       active: selectedProduct.active ?? true,
       images: selectedProduct.images ? selectedProduct.images.map((it) => (typeof it === "string" ? it : (it.imageUrl || it))) : [],
+      colorOptions: optionText(selectedProduct.colorOptions),
+      sizeOptions: optionText(selectedProduct.sizeOptions),
     });
     showToast("Đã khôi phục dữ liệu ban đầu");
   };
@@ -202,7 +214,10 @@ export default function ProductsPage() {
       const payload = {
         ...form,
         price: Number(form.price),
+        originalPrice: form.originalPrice ? Number(form.originalPrice) : null,
         quantity: Number(form.quantity),
+        colorOptions: parseOptions(form.colorOptions),
+        sizeOptions: parseOptions(form.sizeOptions),
       };
       if (modal === "add") {
         await productApi.create(payload);
@@ -309,7 +324,12 @@ export default function ProductsPage() {
             <td className="px-4 py-3">
               {p.brand ? <span className="badge-blue">{p.brand}</span> : <span className="text-text-muted">-</span>}
             </td>
-            <td className="px-4 py-3 text-right font-bold text-brand-blue">{formatVND(p.price)}</td>
+            <td className="px-4 py-3 text-right">
+              <p className="font-bold text-brand-blue">{formatVND(p.price)}</p>
+              {Number(p.originalPrice || 0) > Number(p.price || 0) && (
+                <p className="text-[11px] text-text-muted line-through">{formatVND(p.originalPrice)}</p>
+              )}
+            </td>
             <td className="px-4 py-3 text-right">
               <span className={p.quantity > 0 ? "badge-green" : "badge-danger"}>{p.quantity}</span>
             </td>
@@ -348,9 +368,27 @@ export default function ProductsPage() {
                     placeholder="1500000" className="input-field" />
                 </div>
                 <div>
+                  <label className="block text-sm font-semibold text-text-secondary mb-2">Giá gốc / niêm yết</label>
+                  <input type="number" min="0" value={form.originalPrice} onChange={(e) => setForm({ ...form, originalPrice: e.target.value })}
+                    placeholder="1800000" className="input-field" />
+                  <p className="mt-1 text-xs text-text-muted">Nếu lớn hơn giá bán, web sẽ hiện giá gốc bị gạch.</p>
+                </div>
+                <div>
                   <label className="block text-sm font-semibold text-text-secondary mb-2">Tồn kho *</label>
                   <input required type="number" min="0" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })}
                     placeholder="100" className="input-field" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-text-secondary mb-2">Màu sắc</label>
+                  <input value={form.colorOptions} onChange={(e) => setForm({ ...form, colorOptions: e.target.value })}
+                    placeholder="Đen tím, Xanh dương" className="input-field" />
+                  <p className="mt-1 text-xs text-text-muted">Cách nhau bằng dấu phẩy.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-text-secondary mb-2">Size</label>
+                  <input value={form.sizeOptions} onChange={(e) => setForm({ ...form, sizeOptions: e.target.value })}
+                    placeholder="4U5, 3U5" className="input-field" />
+                  <p className="mt-1 text-xs text-text-muted">Cách nhau bằng dấu phẩy.</p>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-text-secondary mb-2">Thương hiệu</label>

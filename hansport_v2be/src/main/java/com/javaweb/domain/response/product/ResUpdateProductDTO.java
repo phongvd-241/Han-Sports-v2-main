@@ -22,6 +22,7 @@ public class ResUpdateProductDTO {
     private String sku;
     private String name;
     private long price;
+    private Long originalPrice;
 
     private String detailDesc;
 
@@ -33,6 +34,8 @@ public class ResUpdateProductDTO {
     private String category;
     private boolean active;
     private List<String> images;
+    private List<String> colorOptions;
+    private List<String> sizeOptions;
 
     private Instant updatedAt;
 }

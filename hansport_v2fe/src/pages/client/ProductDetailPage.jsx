@@ -10,6 +10,16 @@ import ProductDescription from "../../components/common/ProductDescription";
 import SafeImage from "../../components/common/SafeImage";
 import { getImageUrl, formatVND, getFirstImage } from "../../utils/constants";
 
+function normalizeOptionList(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || "").trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value.split(/[;,|\n\r]+/).map((item) => item.trim()).filter(Boolean);
+  }
+  return [];
+}
+
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -22,6 +32,8 @@ export default function ProductDetailPage() {
   const [activeImage, setActiveImage] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
+  const [selectedColor, setSelectedColor] = useState("");
+  const [selectedSize, setSelectedSize] = useState("");
 
   const [addingCart, setAddingCart] = useState(false);
   const imageVersion = product?.updatedAt || product?.createdAt || product?.id;
@@ -35,12 +47,42 @@ export default function ProductDetailPage() {
     setLoading(true);
     productApi.getById(id)
       .then((res) => {
-        setProduct(res.data?.data || res.data);
-        return productApi.getAll({ page: 0, size: 8 });
+        const prod = res.data?.data || res.data;
+        setProduct(prod);
+
+        const brand = prod?.brand;
+        if (brand) {
+          return Promise.all([
+            Promise.resolve(prod),
+            productApi.getAll({ page: 0, size: 8, brand }),
+            productApi.getAll({ page: 0, size: 8 })
+          ]);
+        } else {
+          return Promise.all([
+            Promise.resolve(prod),
+            productApi.getAll({ page: 0, size: 8 }),
+            Promise.resolve(null)
+          ]);
+        }
       })
-      .then((res) => {
-        const all = res.data?.data?.result || [];
-        setRelated(all.filter((p) => String(p.id) !== String(id)).slice(0, 4));
+      .then(([, brandRes, generalRes]) => {
+        const brandProducts = brandRes?.data?.data?.result || brandRes?.data?.result || [];
+        const generalProducts = generalRes ? (generalRes?.data?.data?.result || generalRes?.data?.result || []) : [];
+
+        // Filter out current product
+        const filteredBrand = brandProducts.filter((p) => String(p.id) !== String(id));
+        const filteredGeneral = generalProducts.filter((p) => String(p.id) !== String(id));
+
+        // Combine same-brand products first, then fill with general products
+        const combined = [...filteredBrand];
+        for (const p of filteredGeneral) {
+          if (combined.length >= 4) break;
+          if (!combined.some(existing => String(existing.id) === String(p.id))) {
+            combined.push(p);
+          }
+        }
+
+        setRelated(combined.slice(0, 4));
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -50,6 +92,10 @@ export default function ProductDetailPage() {
     if (!product) return;
     const first = getFirstImage(product);
     setActiveImage(first);
+    const colors = normalizeOptionList(product.colorOptions);
+    const sizes = normalizeOptionList(product.sizeOptions);
+    setSelectedColor(colors[0] || "");
+    setSelectedSize(sizes[0] || "");
   }, [product]);
 
   const prevImage = () => {
@@ -72,7 +118,12 @@ export default function ProductDetailPage() {
     if (!user) { navigate("/login"); return; }
     setAddingCart(true);
     try {
-      await cartApi.addToCart(product.id, quantity);
+      const availableColors = normalizeOptionList(product?.colorOptions);
+      const availableSizes = normalizeOptionList(product?.sizeOptions);
+      await cartApi.addToCart(product.id, quantity, {
+        selectedColor: selectedColor || availableColors[0] || "",
+        selectedSize: selectedSize || availableSizes[0] || "",
+      });
       const cartRes = await cartApi.getCart();
       setCart(cartRes.data?.data?.cartDetails || []);
       toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
@@ -115,6 +166,11 @@ export default function ProductDetailPage() {
   );
 
   const imageUrl = getImageUrl(activeImage, "product", imageVersion);
+  const colorOptions = normalizeOptionList(product.colorOptions);
+  const sizeOptions = normalizeOptionList(product.sizeOptions);
+  const originalPrice = Number(product.originalPrice || 0);
+  const hasSalePrice = originalPrice > Number(product.price || 0);
+  const salePercent = hasSalePrice ? Math.round(((originalPrice - product.price) / originalPrice) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-surface-soft">
@@ -194,8 +250,15 @@ export default function ProductDetailPage() {
             )}
             <h1 className="text-display font-bold text-text-primary leading-tight">{product.name}</h1>
 
-            <div className="flex items-baseline gap-3 py-4 border-y border-surface-border">
-              <span className="text-3xl font-extrabold text-brand-blue">{formatVND(product.price)}</span>
+            <div className="flex flex-wrap items-baseline gap-3 py-4 border-y border-surface-border">
+              <span className={`${hasSalePrice ? "text-danger" : "text-brand-blue"} text-3xl font-extrabold`}>{formatVND(product.price)}</span>
+              {hasSalePrice && (
+                <>
+                  <span className="text-sm text-text-muted">Giá niêm yết:</span>
+                  <span className="text-sm text-text-muted line-through">{formatVND(originalPrice)}</span>
+                  <span className="badge-danger">-{salePercent}%</span>
+                </>
+              )}
               {product.sold > 0 && (
                 <span className="text-sm text-text-muted">Đã bán: {product.sold.toLocaleString("vi-VN")}</span>
               )}
@@ -224,6 +287,85 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {colorOptions.length > 0 && (
+              <div>
+                <p className="text-sm font-semibold text-text-secondary mb-2">Chọn màu sắc:</p>
+                <div className="flex flex-wrap gap-2">
+                  {colorOptions.map((color, index) => {
+                    const isSelected = selectedColor === color;
+                    const previewImage = imagesArr[index] || activeImage;
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => {
+                          setSelectedColor(color);
+                          if (imagesArr[index]) setActiveImage(imagesArr[index]);
+                        }}
+                        className={`min-w-[132px] rounded-lg border bg-white p-2 text-left transition-all ${
+                          isSelected
+                            ? "border-brand-blue ring-2 ring-brand-blue/10 shadow-card"
+                            : "border-surface-border hover:border-brand-blue/60"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-10 h-10 rounded-md bg-surface-soft overflow-hidden flex-shrink-0">
+                            <SafeImage
+                              src={getImageUrl(previewImage, "product", imageVersion)}
+                              alt={color}
+                              className="w-full h-full object-contain p-1"
+                              fallbackClassName="w-full h-full"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1 text-xs text-text-primary">
+                              <span className={`w-3 h-3 rounded-full border flex items-center justify-center ${
+                                isSelected ? "bg-brand-green border-brand-green" : "border-surface-border"
+                              }`}>
+                                {isSelected && <span className="material-symbols-outlined text-white" style={{ fontSize: 10 }}>check</span>}
+                              </span>
+                              <span className="truncate">{color}</span>
+                            </div>
+                            <p className="mt-1 text-xs font-semibold text-danger">{formatVND(product.price)}</p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {sizeOptions.length > 0 && (
+              <div>
+                <p className="text-sm font-semibold text-text-secondary mb-2">Chọn size:</p>
+                <div className="flex flex-wrap gap-2">
+                  {sizeOptions.map((size) => {
+                    const isSelected = selectedSize === size;
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setSelectedSize(size)}
+                        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold transition-all ${
+                          isSelected
+                            ? "border-brand-blue bg-brand-blue-light text-brand-blue"
+                            : "border-surface-border bg-white text-text-secondary hover:border-brand-blue/60"
+                        }`}
+                      >
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                          isSelected ? "bg-brand-green text-white" : "border border-surface-border"
+                        }`}>
+                          {isSelected && <span className="material-symbols-outlined" style={{ fontSize: 12 }}>check</span>}
+                        </span>
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

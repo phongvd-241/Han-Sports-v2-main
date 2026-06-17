@@ -256,6 +256,7 @@ public class ProductService {
         product.setSku(normalizeSku(req.getSku()));
         product.setName(req.getName());
         product.setPrice(req.getPrice());
+        product.setOriginalPrice(normalizeOriginalPrice(req.getOriginalPrice()));
         product.setShortDesc(req.getShortDesc());
         product.setDetailDesc(req.getDetailDesc());
         product.setBrand(req.getBrand());
@@ -264,7 +265,13 @@ public class ProductService {
         product.setQuantity(req.getQuantity());
         product.setSold(req.getSold());
         product.setActive(req.getActive() == null || req.getActive());
+        product.setColorOptions(joinOptions(req.getColorOptions()));
+        product.setSizeOptions(joinOptions(req.getSizeOptions()));
 
+    }
+
+    private Long normalizeOriginalPrice(Long originalPrice) {
+        return originalPrice == null || originalPrice <= 0 ? null : originalPrice;
     }
 
     private String normalizeSku(String sku) {
@@ -345,6 +352,37 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
+    private String joinOptions(List<String> options) {
+        List<String> normalized = normalizeOptions(options);
+        return normalized.isEmpty() ? null : String.join("|", normalized);
+    }
+
+    private List<String> splitOptions(String options) {
+        if (options == null || options.isBlank()) {
+            return List.of();
+        }
+        List<String> result = new ArrayList<>();
+        for (String option : options.split("\\|")) {
+            String value = option.trim();
+            if (!value.isBlank() && !result.contains(value)) {
+                result.add(value);
+            }
+        }
+        return result;
+    }
+
+    private List<String> normalizeOptions(List<String> options) {
+        if (options == null) {
+            return List.of();
+        }
+        return options.stream()
+                .filter(option -> option != null && !option.isBlank())
+                .map(String::trim)
+                .distinct()
+                .limit(20)
+                .collect(Collectors.toList());
+    }
+
     private void deleteProductImageFileIfUnused(String imageUrl) {
         if (imageUrl == null || this.productImageRepository.countByImageUrl(imageUrl) > 1) {
             return;
@@ -362,6 +400,7 @@ public class ProductService {
         resCreateProductDTO.setSku(product.getSku());
         resCreateProductDTO.setName(product.getName());
         resCreateProductDTO.setPrice(product.getPrice());
+        resCreateProductDTO.setOriginalPrice(product.getOriginalPrice());
         resCreateProductDTO.setDetailDesc(product.getDetailDesc());
         resCreateProductDTO.setShortDesc(product.getShortDesc());
         resCreateProductDTO.setQuantity(product.getQuantity());
@@ -370,6 +409,8 @@ public class ProductService {
         resCreateProductDTO.setCategory(product.getCategory());
         resCreateProductDTO.setBrand(product.getBrand());
         resCreateProductDTO.setActive(product.isActive());
+        resCreateProductDTO.setColorOptions(splitOptions(product.getColorOptions()));
+        resCreateProductDTO.setSizeOptions(splitOptions(product.getSizeOptions()));
 
         List<String> images = new ArrayList<>();
         List<ProductImage> productImages = product.getImages();
@@ -389,6 +430,7 @@ public class ProductService {
         resUpdateProductDTO.setSku(product.getSku());
         resUpdateProductDTO.setName(product.getName());
         resUpdateProductDTO.setPrice(product.getPrice());
+        resUpdateProductDTO.setOriginalPrice(product.getOriginalPrice());
         resUpdateProductDTO.setDetailDesc(product.getDetailDesc());
         resUpdateProductDTO.setShortDesc(product.getShortDesc());
         resUpdateProductDTO.setQuantity(product.getQuantity());
@@ -397,6 +439,8 @@ public class ProductService {
         resUpdateProductDTO.setCategory(product.getCategory());
         resUpdateProductDTO.setBrand(product.getBrand());
         resUpdateProductDTO.setActive(product.isActive());
+        resUpdateProductDTO.setColorOptions(splitOptions(product.getColorOptions()));
+        resUpdateProductDTO.setSizeOptions(splitOptions(product.getSizeOptions()));
 
         List<String> images = new ArrayList<>();
         List<ProductImage> productImages = product.getImages();
@@ -416,6 +460,7 @@ public class ProductService {
         resProductDTO.setSku(product.getSku());
         resProductDTO.setName(product.getName());
         resProductDTO.setPrice(product.getPrice());
+        resProductDTO.setOriginalPrice(product.getOriginalPrice());
         resProductDTO.setDetailDesc(product.getDetailDesc());
         resProductDTO.setShortDesc(product.getShortDesc());
         resProductDTO.setQuantity(product.getQuantity());
@@ -424,6 +469,8 @@ public class ProductService {
         resProductDTO.setCategory(product.getCategory());
         resProductDTO.setBrand(product.getBrand());
         resProductDTO.setActive(product.isActive());
+        resProductDTO.setColorOptions(splitOptions(product.getColorOptions()));
+        resProductDTO.setSizeOptions(splitOptions(product.getSizeOptions()));
 
         List<String> images = new ArrayList<>();
         List<ProductImage> productImages = product.getImages();

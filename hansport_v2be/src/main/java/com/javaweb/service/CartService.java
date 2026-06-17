@@ -63,7 +63,10 @@ public class CartService {
 
         long requestedQuantity = reqAddProductToCartDTO.getQuantity();
 
-        CartDetail oldDetail = this.cartDetailRepository.findByCartAndProduct(cart, realProduct);
+        String selectedColor = resolveProductOption(reqAddProductToCartDTO.getSelectedColor(), realProduct.getColorOptions(), "Mau sac");
+        String selectedSize = resolveProductOption(reqAddProductToCartDTO.getSelectedSize(), realProduct.getSizeOptions(), "Size");
+
+        CartDetail oldDetail = this.cartDetailRepository.findByCartAndProductAndSelectedColorAndSelectedSize(cart, realProduct, selectedColor, selectedSize);
         long currentQuantity = oldDetail == null ? 0 : oldDetail.getQuantity();
         if (currentQuantity + requestedQuantity > realProduct.getQuantity()) {
             throw new IdInvalidException("Số lượng vượt quá tồn kho");
@@ -75,6 +78,8 @@ public class CartService {
             cd.setProduct(realProduct);
             cd.setPrice(realProduct.getPrice());
             cd.setQuantity(requestedQuantity);
+            cd.setSelectedColor(selectedColor);
+            cd.setSelectedSize(selectedSize);
             this.cartDetailRepository.save(cd);
 
             int s = cart.getSum() + 1;
@@ -175,6 +180,8 @@ public class CartService {
         resCartDetailDTO.setId(cd.getId());
         resCartDetailDTO.setQuantity(cd.getQuantity());
         resCartDetailDTO.setPrice(cd.getPrice());
+        resCartDetailDTO.setSelectedColor(cd.getSelectedColor());
+        resCartDetailDTO.setSelectedSize(cd.getSelectedSize());
 
         ResCartDetailDTO.ProductCartDetail productCartDetail = new ResCartDetailDTO.ProductCartDetail();
         productCartDetail.setId(cd.getProduct().getId());
@@ -199,6 +206,41 @@ public class CartService {
     private User getUserOrThrow(String email) throws IdInvalidException {
         return this.userRepository.findByEmail(email)
                 .orElseThrow(() -> new IdInvalidException("Người dùng không tồn tại"));
+    }
+
+    private String resolveProductOption(String requested, String availableOptions, String fieldName) throws IdInvalidException {
+        String normalized = normalizeOption(requested);
+        List<String> options = splitOptions(availableOptions);
+        if (options.isEmpty()) {
+            return normalized;
+        }
+        if (normalized == null) {
+            throw new IdInvalidException(fieldName + " khong hop le");
+        }
+        for (String option : options) {
+            if (option.equalsIgnoreCase(normalized)) {
+                return option;
+            }
+        }
+        throw new IdInvalidException(fieldName + " khong hop le");
+    }
+
+    private String normalizeOption(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private List<String> splitOptions(String options) {
+        if (options == null || options.isBlank()) {
+            return List.of();
+        }
+        List<String> result = new ArrayList<>();
+        for (String option : options.split("\\|")) {
+            String value = option.trim();
+            if (!value.isBlank() && !result.contains(value)) {
+                result.add(value);
+            }
+        }
+        return result;
     }
 
     private ResCartDTO convertEmptyCartDTO(User user) {

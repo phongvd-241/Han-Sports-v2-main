@@ -4,9 +4,12 @@ import { getImageUrl, formatVND, getFirstImage } from "../../utils/constants";
 
 export default function ProductCard({ product, discountPercent, badge, onAddCart }) {
   const { id, name, price, brand, sold, quantity } = product;
-  const originalPrice = discountPercent
+  const computedOriginalPrice = discountPercent
     ? Math.round(price / (1 - discountPercent / 100))
     : null;
+  const originalPrice = Number(product.originalPrice || computedOriginalPrice || 0);
+  const hasSalePrice = originalPrice > Number(price || 0);
+  const salePercent = hasSalePrice ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
   const isOutOfStock = quantity === 0;
   const imageVersion = product.updatedAt || product.createdAt || product.id;
   const imageSrc = getImageUrl(getFirstImage(product), "product", imageVersion);
@@ -14,8 +17,8 @@ export default function ProductCard({ product, discountPercent, badge, onAddCart
   return (
     <div className="group card relative flex flex-col overflow-hidden">
       <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1.5">
-        {discountPercent && (
-          <span className="badge-danger text-[10px] px-1.5 py-0.5">-{discountPercent}%</span>
+        {(discountPercent || salePercent > 0) && (
+          <span className="badge-danger text-[10px] px-1.5 py-0.5">-{discountPercent || salePercent}%</span>
         )}
         {badge === "new" && (
           <span className="badge-green text-[10px] px-1.5 py-0.5">Mới</span>
@@ -59,7 +62,7 @@ export default function ProductCard({ product, discountPercent, badge, onAddCart
         <div className="mt-auto">
           <div className="flex items-baseline gap-2 mb-3">
             <span className="text-base font-bold text-brand-blue">{formatVND(price)}</span>
-            {originalPrice && (
+            {hasSalePrice && (
               <span className="text-xs text-text-muted line-through">{formatVND(originalPrice)}</span>
             )}
           </div>

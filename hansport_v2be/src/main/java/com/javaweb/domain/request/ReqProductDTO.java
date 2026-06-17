@@ -21,6 +21,7 @@ public class ReqProductDTO {
     @NotNull(message = "Price không được để trống")
     @DecimalMin(value = "0", inclusive = false, message = "Price phải lớn hơn 0")
     private Long price;
+    private Long originalPrice;
 
     @NotBlank(message = "Mô tả chi tiết không được để trống")
     private String detailDesc;
@@ -37,4 +38,6 @@ public class ReqProductDTO {
     private String category;
     private Boolean active;
     private List<String> images;
+    private List<String> colorOptions;
+    private List<String> sizeOptions;
 }

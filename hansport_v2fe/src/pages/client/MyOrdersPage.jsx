@@ -176,6 +176,20 @@ export default function MyOrdersPage() {
                                     <span className="w-1 h-1 rounded-full bg-surface-border" />
                                     <span className="text-xs text-text-muted">{formatVND(item.price)}</span>
                                   </div>
+                                  {(item.selectedColor || item.selectedSize) && (
+                                    <div className="flex flex-wrap gap-1.5 mt-2">
+                                      {item.selectedColor && (
+                                        <span className="px-2 py-0.5 rounded-md bg-surface-muted text-[11px] font-semibold text-text-secondary">
+                                          Màu: {item.selectedColor}
+                                        </span>
+                                      )}
+                                      {item.selectedSize && (
+                                        <span className="px-2 py-0.5 rounded-md bg-surface-muted text-[11px] font-semibold text-text-secondary">
+                                          Size: {item.selectedSize}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                                 <span className="font-black text-brand-blue text-sm">{formatVND(item.price * item.quantity)}</span>
                               </div>

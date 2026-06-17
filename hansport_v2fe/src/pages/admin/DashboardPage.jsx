@@ -158,36 +158,11 @@ export default function DashboardPage() {
       )}
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-5">
-        <div className="card overflow-hidden">
-          <div className="px-5 py-4 border-b border-surface-border flex items-center justify-between">
-            <h3 className="text-lg font-bold text-text-primary">Đơn hàng gần đây</h3>
-            <Link to="/admin/orders" className="text-sm font-semibold text-brand-blue hover:underline flex items-center gap-1">
-              Xem tất cả <span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_forward</span>
-            </Link>
-          </div>
-          {loading ? (
-            <div className="p-5 flex flex-col gap-3">
-              {[...Array(4)].map((_, index) => <div key={index} className="skeleton h-12 rounded-lg" />)}
-            </div>
-          ) : summary.recentOrders.length === 0 ? (
-            <EmptyState icon="receipt_long" title="Chưa có đơn hàng nào" className="py-12" />
-          ) : (
-            <DataTable columns={RECENT_ORDER_COLUMNS} framed={false}>
-              {summary.recentOrders.map((order) => {
-                const status = ORDER_STATUS[order.status] || { label: order.status || "N/A", color: "badge-blue" };
-                return (
-                  <tr key={order.id} className="hover:bg-surface-soft transition-colors">
-                    <td className="px-5 py-4 font-bold text-brand-blue">#{String(order.id).padStart(6, "0")}</td>
-                    <td className="px-5 py-4 text-text-primary">{order.receiverName || order.user?.name || "-"}</td>
-                    <td className="px-5 py-4 text-text-muted">{formatDate(order.createdAt)}</td>
-                    <td className="px-5 py-4 text-right font-semibold text-text-primary">{formatVND(order.totalPrice)}</td>
-                    <td className="px-5 py-4 text-center"><StatusBadge label={status.label} className={status.color} /></td>
-                  </tr>
-                );
-              })}
-            </DataTable>
-          )}
-        </div>
+        {loading ? (
+          <div className="skeleton h-[300px] rounded-xl" />
+        ) : (
+          <RevenueChart data={summary.dailyRevenue || []} />
+        )}
 
         <div className="card p-5 flex flex-col gap-4 border-t-4 border-brand-teal/40">
           <div>
@@ -211,6 +186,135 @@ export default function DashboardPage() {
             </Link>
           ))}
         </div>
+      </div>
+
+      <div className="card overflow-hidden">
+        <div className="px-5 py-4 border-b border-surface-border flex items-center justify-between">
+          <h3 className="text-lg font-bold text-text-primary">Đơn hàng gần đây</h3>
+          <Link to="/admin/orders" className="text-sm font-semibold text-brand-blue hover:underline flex items-center gap-1">
+            Xem tất cả <span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_forward</span>
+          </Link>
+        </div>
+        {loading ? (
+          <div className="p-5 flex flex-col gap-3">
+            {[...Array(4)].map((_, index) => <div key={index} className="skeleton h-12 rounded-lg" />)}
+          </div>
+        ) : summary.recentOrders.length === 0 ? (
+          <EmptyState icon="receipt_long" title="Chưa có đơn hàng nào" className="py-12" />
+        ) : (
+          <DataTable columns={RECENT_ORDER_COLUMNS} framed={false}>
+            {summary.recentOrders.map((order) => {
+              const status = ORDER_STATUS[order.status] || { label: order.status || "N/A", color: "badge-blue" };
+              return (
+                <tr key={order.id} className="hover:bg-surface-soft transition-colors">
+                  <td className="px-5 py-4 font-bold text-brand-blue">#{String(order.id).padStart(6, "0")}</td>
+                  <td className="px-5 py-4 text-text-primary">{order.receiverName || order.user?.name || "-"}</td>
+                  <td className="px-5 py-4 text-text-muted">{formatDate(order.createdAt)}</td>
+                  <td className="px-5 py-4 text-right font-semibold text-text-primary">{formatVND(order.totalPrice)}</td>
+                  <td className="px-5 py-4 text-center"><StatusBadge label={status.label} className={status.color} /></td>
+                </tr>
+              );
+            })}
+          </DataTable>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RevenueChart({ data }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="card p-5 flex items-center justify-center min-h-[300px]">
+        <div className="text-center text-text-muted">
+          <span className="material-symbols-outlined" style={{ fontSize: 40 }}>monitoring</span>
+          <p className="mt-2 text-sm">Chưa có dữ liệu biểu đồ.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const width = 500;
+  const height = 240;
+  const padding = 35;
+  const chartWidth = width - padding * 2;
+  const chartHeight = height - padding * 2;
+
+  // Find max revenue for scaling (fallback to 100,000 to avoid division by zero)
+  const maxRevenue = Math.max(...data.map(d => d.revenue), 100000);
+
+  // Calculate coordinates for points
+  const points = data.map((d, index) => {
+    const x = padding + (data.length > 1 ? (index * (chartWidth / (data.length - 1))) : 0);
+    const y = padding + chartHeight - (d.revenue / maxRevenue * chartHeight);
+    return { x, y, ...d };
+  });
+
+  // Create SVG path for line
+  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+
+  // Create SVG path for gradient area
+  const areaPath = points.length > 0 
+    ? `${linePath} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`
+    : "";
+
+  return (
+    <div className="card p-5 flex flex-col gap-4">
+      <div>
+        <h3 className="text-base font-bold text-text-primary">Doanh thu 7 ngày qua</h3>
+        <p className="text-xs text-text-muted mt-0.5">Thống kê doanh thu thực tế dựa trên các đơn hàng đã hoàn thành.</p>
+      </div>
+      <div className="w-full flex-grow flex items-center justify-center">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible">
+          <defs>
+            <linearGradient id="chart-gradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#16a34a" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#16a34a" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+
+          {/* Grid lines */}
+          {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+            const y = padding + chartHeight * ratio;
+            return (
+              <line key={ratio} x1={padding} y1={y} x2={width - padding} y2={y} stroke="#e2e8f0" strokeDasharray="4 4" />
+            );
+          })}
+
+          {/* Vertical guide lines */}
+          {points.map((p, idx) => (
+            <line key={`guide-${idx}`} x1={p.x} y1={padding} x2={p.x} y2={height - padding} stroke="#f1f5f9" strokeWidth="1" />
+          ))}
+
+          {/* Gradient Area under the line */}
+          {areaPath && <path d={areaPath} fill="url(#chart-gradient)" />}
+
+          {/* Spark Line */}
+          {linePath && (
+            <path d={linePath} fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          )}
+
+          {/* Data Points */}
+          {points.map((p, idx) => (
+            <g key={idx} className="group cursor-pointer">
+              <circle cx={p.x} cy={p.y} r="4.5" fill="#fff" stroke="#16a34a" strokeWidth="2.5" className="transition-all duration-150 group-hover:r-6" />
+              {/* Tooltip on hover */}
+              <g className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none">
+                <rect x={p.x - 55} y={p.y - 32} width="110" height="22" rx="4" fill="#0f172a" />
+                <text x={p.x} y={p.y - 17} textAnchor="middle" fill="#fff" fontSize="10" className="font-bold">
+                  {p.revenue.toLocaleString("vi-VN")} đ
+                </text>
+              </g>
+            </g>
+          ))}
+
+          {/* X-axis labels */}
+          {points.map((p, idx) => (
+            <text key={idx} x={p.x} y={height - 12} textAnchor="middle" fill="#64748b" fontSize="10" className="font-semibold">
+              {p.date}
+            </text>
+          ))}
+        </svg>
       </div>
     </div>
   );

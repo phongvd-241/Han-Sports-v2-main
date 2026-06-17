@@ -26,6 +26,12 @@ function parseInline(text) {
   return html;
 }
 
+function getYouTubeId(url) {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+}
+
 export default function ProductDescription({ content }) {
   const text = (content || "").replace(/\r\n/g, "\n").trim();
   if (!text) {
@@ -69,6 +75,32 @@ export default function ProductDescription({ content }) {
       if (!nextLineIsList) {
         pushCurrentList();
       }
+      continue;
+    }
+
+    // Check if the line is a YouTube link
+    let targetUrl = line;
+    const markdownLinkMatch = line.match(/^\[(.*?)\]\((.*?)\)$/);
+    if (markdownLinkMatch) {
+      targetUrl = markdownLinkMatch[2].trim();
+    }
+    const ytId = getYouTubeId(targetUrl);
+    const isYtLine = ytId && (
+      /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/[^\s]+$/.test(targetUrl.trim())
+    );
+
+    if (isYtLine) {
+      pushCurrentList();
+      elements.push(
+        <iframe
+          key={`yt-${i}`}
+          className="w-full aspect-video rounded-xl shadow-md my-6 border-0"
+          src={`https://www.youtube.com/embed/${ytId}`}
+          title="YouTube video player"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
+      );
       continue;
     }
 

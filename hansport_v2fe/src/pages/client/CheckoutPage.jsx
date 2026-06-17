@@ -221,6 +221,13 @@ export default function CheckoutPage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-text-primary line-clamp-2">{product.name}</p>
                           <p className="text-xs text-text-muted mt-0.5">x{item.quantity}</p>
+                          {(item.selectedColor || item.selectedSize) && (
+                            <p className="text-[11px] text-text-muted mt-0.5">
+                              {[item.selectedColor && `Màu: ${item.selectedColor}`, item.selectedSize && `Size: ${item.selectedSize}`]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                          )}
                         </div>
                         <span className="text-xs font-bold text-brand-blue flex-shrink-0">
                           {formatVND(product.price * item.quantity)}

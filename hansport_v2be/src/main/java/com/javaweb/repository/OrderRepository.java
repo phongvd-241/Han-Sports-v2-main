@@ -19,9 +19,11 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
 
     List<Order> findTop5ByOrderByCreatedAtDesc();
 
-    @org.springframework.data.jpa.repository.Query("select coalesce(sum(o.totalPrice), 0) from Order o")
+    List<Order> findAllByStatusAndCreatedAtBetween(String status, Instant start, Instant end);
+
+    @org.springframework.data.jpa.repository.Query("select coalesce(sum(o.totalPrice), 0) from Order o where o.status = 'COMPLETED'")
     long sumTotalPrice();
 
-    @org.springframework.data.jpa.repository.Query("select coalesce(sum(o.totalPrice), 0) from Order o where o.createdAt >= :createdAt")
+    @org.springframework.data.jpa.repository.Query("select coalesce(sum(o.totalPrice), 0) from Order o where o.status = 'COMPLETED' and o.createdAt >= :createdAt")
     long sumTotalPriceSince(Instant createdAt);
 }

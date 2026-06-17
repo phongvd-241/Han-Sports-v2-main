@@ -18,6 +18,8 @@ public class OrderDetail {
     private long id;
     private long quantity;
     private long price;
+    private String selectedColor;
+    private String selectedSize;
 
     @ManyToOne
     @JoinColumn(name = "order_id")

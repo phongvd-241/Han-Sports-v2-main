@@ -147,6 +147,20 @@ export default function CartPage() {
                       {p.name}
                     </Link>
                     {p.brand && <p className="text-xs text-brand-teal font-semibold mt-0.5">{p.brand}</p>}
+                    {(item.selectedColor || item.selectedSize) && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {item.selectedColor && (
+                          <span className="px-2 py-1 rounded-md bg-surface-muted text-[11px] font-semibold text-text-secondary">
+                            Màu: {item.selectedColor}
+                          </span>
+                        )}
+                        {item.selectedSize && (
+                          <span className="px-2 py-1 rounded-md bg-surface-muted text-[11px] font-semibold text-text-secondary">
+                            Size: {item.selectedSize}
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
                       <div className="flex items-center border border-surface-border rounded-lg overflow-hidden">

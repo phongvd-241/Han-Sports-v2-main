@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { useEffect, useRef } from "react";
 import Header from "../components/common/Header";
 import Footer from "../components/common/Footer";
@@ -12,6 +12,11 @@ export default function ClientLayout() {
   const { user, setAuth, clearAuth } = useAuthStore();
   const { setCart } = useCartStore();
   const initialized = useRef(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (initialized.current) return;

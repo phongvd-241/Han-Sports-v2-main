@@ -32,6 +32,7 @@ public class Product {
     @NotNull
     @DecimalMin(value = "0", inclusive = false, message = "Price phải lớn hơn 0")
     private long price;
+    private Long originalPrice;
 
     @NotNull
     @NotEmpty(message = "Mô tả chi tiết không được để trống")
@@ -50,6 +51,8 @@ public class Product {
     private String target;
     private String category;
     private boolean active = true;
+    private String colorOptions;
+    private String sizeOptions;
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderColumn(name = "sort_order")

@@ -16,4 +16,17 @@ public class ResDashboardSummaryDTO {
     private long revenueRecent;
     private long lowStockCount;
     private List<ResOrderDTO> recentOrders;
+    private List<DailyRevenue> dailyRevenue;
+
+    @Getter
+    @Setter
+    public static class DailyRevenue {
+        private String date;
+        private long revenue;
+
+        public DailyRevenue(String date, long revenue) {
+            this.date = date;
+            this.revenue = revenue;
+        }
+    }
 }

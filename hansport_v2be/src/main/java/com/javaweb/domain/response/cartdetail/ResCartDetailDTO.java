@@ -18,6 +18,8 @@ public class ResCartDetailDTO {
     private long id;
     private long quantity;
     private long price;
+    private String selectedColor;
+    private String selectedSize;
     private ProductCartDetail product;
     private Instant createdAt;
     private Instant updatedAt;

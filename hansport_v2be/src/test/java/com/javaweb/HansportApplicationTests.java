@@ -320,6 +320,49 @@ class HansportApplicationTests {
 	}
 
 	@Test
+	void cartAndOrderPreserveSelectedVariantOptions() throws Exception {
+		User user = createUser("variant-user@example.test", "User@123");
+		Product product = createProduct("Variant Test Product", 5);
+		product.setColorOptions("Blue|Black");
+		product.setSizeOptions("4U5|3U5");
+		productRepository.save(product);
+
+		ReqAddProductToCartDTO blueReq = new ReqAddProductToCartDTO();
+		blueReq.setProductId(product.getId());
+		blueReq.setQuantity(1);
+		blueReq.setSelectedColor("Blue");
+		blueReq.setSelectedSize("4U5");
+
+		cartService.addProductToCart(user.getEmail(), blueReq);
+		var cart = cartService.getCart(user.getEmail());
+		var blueDetail = cart.getCartDetails().get(0);
+		Assertions.assertEquals("Blue", blueDetail.getSelectedColor());
+		Assertions.assertEquals("4U5", blueDetail.getSelectedSize());
+
+		ReqAddProductToCartDTO blackReq = new ReqAddProductToCartDTO();
+		blackReq.setProductId(product.getId());
+		blackReq.setQuantity(1);
+		blackReq.setSelectedColor("Black");
+		blackReq.setSelectedSize("4U5");
+
+		cartService.addProductToCart(user.getEmail(), blackReq);
+		var variantCart = cartService.getCart(user.getEmail());
+		Assertions.assertEquals(2, variantCart.getCartDetails().size());
+
+		ReqAddProductToCartDTO invalidReq = new ReqAddProductToCartDTO();
+		invalidReq.setProductId(product.getId());
+		invalidReq.setQuantity(1);
+		invalidReq.setSelectedColor("Green");
+		invalidReq.setSelectedSize("4U5");
+		Assertions.assertThrows(IdInvalidException.class,
+				() -> cartService.addProductToCart(user.getEmail(), invalidReq));
+
+		var order = orderService.placeOrder(user.getEmail(), orderRequest(List.of(blueDetail.getId())));
+		Assertions.assertEquals("Blue", order.getOrderDetails().get(0).getSelectedColor());
+		Assertions.assertEquals("4U5", order.getOrderDetails().get(0).getSelectedSize());
+	}
+
+	@Test
 	void settingsRejectInvalidJsonArray() {
 		ReqSettingUpdateDTO dto = new ReqSettingUpdateDTO();
 		dto.setSettingKey("BRANDS");
@@ -629,6 +672,24 @@ class HansportApplicationTests {
 		Assertions.assertEquals(
 				List.of("detail-image.png", "main-image.png", "side-image.png"),
 				productService.fetchProductById(product.getId()).getImages());
+	}
+
+	@Test
+	void productSaleColorAndSizeOptionsAreReturned() throws Exception {
+		Product product = createProduct("Sale Options Product", 5);
+		ReqProductDTO request = productRequest(product, List.of("sale-main.png"));
+		request.setPrice(1_200_000L);
+		request.setOriginalPrice(1_440_000L);
+		request.setColorOptions(List.of("Đen tím", "Xanh dương"));
+		request.setSizeOptions(List.of("4U5", "3U5"));
+
+		productService.handleUpdateProduct(request);
+
+		var response = productService.fetchProductById(product.getId());
+		Assertions.assertEquals(1_200_000L, response.getPrice());
+		Assertions.assertEquals(1_440_000L, response.getOriginalPrice());
+		Assertions.assertEquals(List.of("Đen tím", "Xanh dương"), response.getColorOptions());
+		Assertions.assertEquals(List.of("4U5", "3U5"), response.getSizeOptions());
 	}
 
 	@Test

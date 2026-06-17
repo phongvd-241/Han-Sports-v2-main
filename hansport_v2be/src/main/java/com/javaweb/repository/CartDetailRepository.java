@@ -8,5 +8,6 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface CartDetailRepository extends JpaRepository<CartDetail,Long>, JpaSpecificationExecutor<CartDetail> {
     CartDetail findByCartAndProduct(Cart cart, Product product);
+    CartDetail findByCartAndProductAndSelectedColorAndSelectedSize(Cart cart, Product product, String selectedColor, String selectedSize);
     boolean existsById(long cartDetailId);
 }

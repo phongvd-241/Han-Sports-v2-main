@@ -92,6 +92,8 @@ public class OrderService {
             orderDetail.setProduct(product);
             orderDetail.setPrice(cartDetail.getPrice());
             orderDetail.setQuantity(cartDetail.getQuantity());
+            orderDetail.setSelectedColor(cartDetail.getSelectedColor());
+            orderDetail.setSelectedSize(cartDetail.getSelectedSize());
             savedOrderDetails.add(this.orderDetailRepository.save(orderDetail));
             
             allCartDetails.remove(cartDetail);
@@ -257,6 +259,8 @@ public class OrderService {
         resOrderDetailDTO.setId(orderDetail.getId());
         resOrderDetailDTO.setQuantity(orderDetail.getQuantity());
         resOrderDetailDTO.setPrice(orderDetail.getPrice());
+        resOrderDetailDTO.setSelectedColor(orderDetail.getSelectedColor());
+        resOrderDetailDTO.setSelectedSize(orderDetail.getSelectedSize());
 
         ResOrderDetailDTO.ProductOrderDetail productCartDetail = new ResOrderDetailDTO.ProductOrderDetail();
         productCartDetail.setId(orderDetail.getProduct().getId());

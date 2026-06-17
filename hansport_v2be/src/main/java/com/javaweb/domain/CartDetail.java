@@ -21,6 +21,8 @@ public class CartDetail {
     private long quantity;
 
     private long price;
+    private String selectedColor;
+    private String selectedSize;
 
     @ManyToOne
     @JoinColumn(name = "cart_id")

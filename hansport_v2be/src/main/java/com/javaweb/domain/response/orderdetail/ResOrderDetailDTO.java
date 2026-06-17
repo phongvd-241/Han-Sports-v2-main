@@ -20,6 +20,8 @@ public class ResOrderDetailDTO {
     private long id;
     private long quantity;
     private long price;
+    private String selectedColor;
+    private String selectedSize;
     private ProductOrderDetail product;
 
     private Instant createdAt;
