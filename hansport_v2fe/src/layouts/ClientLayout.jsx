@@ -57,7 +57,7 @@ export default function ClientLayout() {
   }, [clearAuth, setAuth, setCart, user]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-surface-soft">
+    <div className="flex flex-col min-h-screen glass-theme">
       <Header />
       <main className="flex-grow pb-16 md:pb-0">
         <Outlet />

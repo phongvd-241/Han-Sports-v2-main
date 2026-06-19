@@ -37,6 +37,13 @@ export default {
         "admin-bg":          "#0f1e3d",   // Deep navy for sidebar
         "admin-bg-light":    "#162550",
         "admin-active":      "#1d4ed8",
+
+        // ═══ GLASSMORPHISM ═══
+        "glass-bg":          "rgba(255, 255, 255, 0.12)",
+        "glass-border":      "rgba(255, 255, 255, 0.24)",
+        "glass-shadow":      "rgba(0, 0, 0, 0.15)",
+        "glass-dark":        "rgba(0, 20, 60, 0.35)",
+        "glass-light":       "rgba(255, 255, 255, 0.08)",
       },
       backgroundImage: {
         // Gradient chính — dùng ở buttons, hero, badges
@@ -44,6 +51,11 @@ export default {
         "brand-gradient-r":  "linear-gradient(to right, #16a34a, #1d4ed8)",
         "brand-gradient-hero": "linear-gradient(135deg, #0f1e3d 0%, #1d4ed8 50%, #0d9488 100%)",
         "footer-gradient":   "linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%)",
+
+        // Glassmorphism gradients
+        "glass-gradient":    "linear-gradient(135deg, #0f8f52 0%, #0d4db8 55%, #071d68 100%)",
+        "glass-radial-green": "radial-gradient(circle at top left, rgba(22,199,102,0.35), transparent 35%)",
+        "glass-radial-blue":  "radial-gradient(circle at top right, rgba(21,89,255,0.45), transparent 40%)",
       },
       fontFamily: {
         sans: ["Noto Sans", "Segoe UI", "Arial", "sans-serif"],
@@ -66,6 +78,17 @@ export default {
         "brand-glow":  "0 8px 30px rgb(13 148 136 / 0.3)",
         "navbar":      "0 1px 0 0 #e2e8f0",
         "modal":       "0 25px 50px -12px rgb(0 0 0 / 0.25)",
+        
+        // Glassmorphism box shadows
+        "glass":       "0 8px 32px 0 rgba(0, 0, 0, 0.15), inset 0 1px 1px 0 rgba(255, 255, 255, 0.1)",
+        "glass-hover": "0 12px 40px 0 rgba(0, 0, 0, 0.25), inset 0 1px 2px 0 rgba(255, 255, 255, 0.2)",
+        "glass-glow":  "0 8px 32px 0 rgba(22, 163, 74, 0.15), 0 0 15px 0 rgba(29, 78, 216, 0.2)",
+        "glass-btn":   "0 4px 15px 0 rgba(0, 0, 0, 0.15)",
+      },
+      backdropBlur: {
+        "glass":      "24px",
+        "glass-sm":   "16px",
+        "glass-lg":   "28px",
       },
       borderRadius: {
         "sm":   "0.375rem",

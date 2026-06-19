@@ -149,7 +149,12 @@ export default function HomePage() {
   const handleAddCart = async (product) => {
     if (!user) { toast.error("Vui lòng đăng nhập để thêm vào giỏ hàng!"); return; }
     try {
-      await cartApi.addToCart(product.id, 1);
+      const availableColors = normalizeOptionList(product.colorOptions);
+      const availableSizes = normalizeOptionList(product.sizeOptions);
+      await cartApi.addToCart(product.id, 1, {
+        selectedColor: availableColors[0] || "",
+        selectedSize: availableSizes[0] || "",
+      });
       const cartRes = await cartApi.getCart();
       setCart(cartRes.data?.data?.cartDetails || []);
       toast.success("Đã thêm vào giỏ hàng!");
@@ -157,12 +162,12 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface-soft">
+    <div className="min-h-screen bg-transparent">
 
 
       {HERO_SLIDES.length > 0 && (
         <section
-          className="relative overflow-hidden group/hero select-none touch-none"
+          className="relative overflow-hidden group/hero select-none touch-none max-w-[1280px] mx-auto md:my-6 md:rounded-3xl border border-white/10 shadow-glass"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
@@ -194,17 +199,17 @@ export default function HomePage() {
             {HERO_SLIDES.map((slide, i) => {
               const bannerImage = getFirstImage(slide);
               const Content = (
-                <div className="w-full h-full relative overflow-hidden bg-surface-muted">
+                <div className="w-full h-full relative overflow-hidden bg-transparent">
                   {bannerImage ? (
                     <SafeImage
                       src={getImageUrl(bannerImage, slide.imageFolder || "banner")}
                       alt={`Banner ${i + 1}`}
                       className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
-                      fallbackClassName="absolute inset-0 w-full h-full bg-surface-muted"
+                      fallbackClassName="absolute inset-0 w-full h-full bg-white/5"
                       loading={i === 0 ? "eager" : "lazy"}
                     />
                   ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-text-muted">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40">
                       <span className="material-symbols-outlined" style={{ fontSize: 56 }}>image_not_supported</span>
                       <span className="mt-2 text-sm font-semibold">Banner chưa có ảnh</span>
                     </div>
@@ -240,7 +245,7 @@ export default function HomePage() {
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
             {HERO_SLIDES.map((_, i) => (
               <button key={i} onClick={() => setHeroIdx(i)}
-                className={`rounded-full transition-all duration-300 ${i === heroIdx ? "w-6 h-2 bg-white" : "w-2 h-2 bg-white/40 hover:bg-white/60"}`}
+                className={`rounded-full transition-all duration-300 ${i === heroIdx ? "w-6 h-2 bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]" : "w-2 h-2 bg-white/40 hover:bg-white/60"}`}
               />
             ))}
           </div>
@@ -249,46 +254,52 @@ export default function HomePage() {
 
       <section className="max-w-[1280px] mx-auto px-4 md:px-6 py-12">
         <div className="section-header">
-          <h2 className="text-heading font-bold text-text-primary">Danh mục sản phẩm</h2>
+          <h2 className="text-heading font-bold text-white">Danh mục sản phẩm</h2>
         </div>
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-          {displayCategories.map(({ name, icon, path, color }) => (
-            <Link key={name} to={path}
-              className="flex flex-col items-center gap-3 p-4 rounded-xl bg-white border border-surface-border hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 group"
-            >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color} group-hover:scale-110 transition-transform duration-300`}>
-                <span className="material-symbols-outlined" style={{ fontSize: 24, fontVariationSettings: "'FILL' 1" }}>{icon}</span>
-              </div>
-              <span className="text-xs font-semibold text-text-primary text-center">{name}</span>
-            </Link>
-          ))}
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+          {displayCategories.map(({ name, icon, path, color }) => {
+            const glassColor = color
+              .replace("bg-brand-blue-light text-brand-blue", "bg-blue-500/20 text-blue-300 border border-blue-500/30")
+              .replace("bg-brand-green-light text-brand-green", "bg-green-500/20 text-green-300 border border-green-500/30")
+              .replace("bg-brand-teal-light text-brand-teal", "bg-teal-500/20 text-teal-300 border border-teal-500/30");
+            return (
+              <Link key={name} to={path}
+                className="flex flex-col items-center gap-3 p-4 rounded-2xl glass-card hover:-translate-y-1.5 transition-all duration-300 group h-full"
+              >
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${glassColor} group-hover:scale-110 transition-transform duration-300`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 24, fontVariationSettings: "'FILL' 1" }}>{icon}</span>
+                </div>
+                <span className="text-xs font-semibold text-white/90 text-center group-hover:text-green-300 transition-colors">{name}</span>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
-      <section className="bg-white border-y border-surface-border py-12">
-        <div className="max-w-[1280px] mx-auto px-4 md:px-6">
+      <section className="glass max-w-[1280px] mx-auto px-6 py-12 my-12 border border-white/10 rounded-3xl shadow-glass">
+        <div className="max-w-[1280px] mx-auto">
           <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <div className="section-header mb-0">
-                <h2 className="text-heading font-bold text-text-primary flex items-center gap-2">
-                  <span className="material-symbols-outlined text-danger" style={{ fontSize: 28, fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                <h2 className="text-heading font-bold text-white flex items-center gap-2">
+                  <span className="material-symbols-outlined text-red-500 shadow-glass" style={{ fontSize: 28, fontVariationSettings: "'FILL' 1" }}>bolt</span>
                   Flash Sale
                 </h2>
               </div>
               <div className="flex items-center gap-1.5 text-sm font-semibold">
-                <span className="text-text-muted">Kết thúc sau:</span>
+                <span className="text-white/60">Kết thúc sau:</span>
                 {[h, m, s].map((t, i) => (
-                  <span key={i} className="bg-text-primary text-white px-2 py-1 rounded-lg font-mono text-sm">{t}</span>
-                )).reduce((a, b, i) => a.length ? [...a, <span key={`sep-${i}`} className="text-text-muted font-bold">:</span>, b] : [b], [])}
+                  <span key={i} className="glass-dark border border-white/15 text-white px-2.5 py-1 rounded-lg font-mono text-sm shadow-[0_0_10px_rgba(0,0,0,0.2)]">{t}</span>
+                )).reduce((a, b, i) => a.length ? [...a, <span key={`sep-${i}`} className="text-white/40 font-bold">:</span>, b] : [b], [])}
               </div>
             </div>
-            <Link to="/shop" className="text-sm font-semibold text-brand-blue hover:underline flex items-center gap-1">
+            <Link to="/shop" className="text-sm font-semibold text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-1">
               Xem tất cả <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_forward</span>
             </Link>
           </div>
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => <div key={i} className="skeleton h-72 rounded-xl" />)}
+              {[...Array(4)].map((_, i) => <div key={i} className="skeleton bg-white/5 h-72 rounded-xl" />)}
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -302,31 +313,29 @@ export default function HomePage() {
 
       <section className="max-w-[1280px] mx-auto px-4 md:px-6 py-12">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-1 h-8 bg-gradient-to-b from-brand-green to-brand-blue rounded-full" />
-          <h2 className="text-2xl md:text-3xl font-bold text-text-primary uppercase tracking-tight">Sản phẩm mới</h2>
+          <div className="w-1 h-8 bg-gradient-to-b from-green-400 to-blue-500 rounded-full" />
+          <h2 className="text-2xl md:text-3xl font-bold text-white uppercase tracking-tight">Sản phẩm mới</h2>
         </div>
 
-        <div className="flex flex-wrap border border-surface-border bg-white rounded-t-xl overflow-hidden shadow-sm">
+        <div className="flex flex-wrap border border-white/10 bg-white/5 rounded-t-2xl overflow-hidden shadow-glass">
           {displayCategories.map((cat) => (
             <button
               key={cat.name}
               onClick={() => setActiveTab(cat.name)}
-              className={`flex-1 min-w-[120px] py-4 px-4 text-sm font-bold transition-all border-r border-surface-border last:border-0 ${activeTab === cat.name ? "bg-gradient-to-r from-brand-green to-brand-blue text-white" : "text-text-primary hover:bg-surface-muted"}`}
+              className={`flex-1 min-w-[120px] py-4 px-4 text-sm font-bold transition-all border-r border-white/10 last:border-0 ${activeTab === cat.name ? "bg-gradient-to-r from-brand-green to-brand-blue text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]" : "text-white/80 hover:bg-white/5 hover:text-white"}`}
             >
               {cat.name}
             </button>
           ))}
         </div>
 
-        <div className="p-4 md:p-6 bg-white border-x-4 border-b-4 border-brand-blue/30 rounded-b-xl relative group/grid shadow-md">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-brand-blue/30" />
-
+        <div className="p-4 md:p-6 glass border-x border-b border-white/10 rounded-b-2xl relative group/grid shadow-glass">
           <button
             onClick={() => {
               const el = document.getElementById("tabbed-product-scroll");
               el.scrollBy({ left: -300, behavior: "smooth" });
             }}
-            className="absolute left-1 top-1/2 -translate-y-1/2 w-10 h-12 bg-white shadow-xl flex items-center justify-center rounded-r-xl opacity-0 group-hover/grid:opacity-100 transition-opacity z-20 border border-surface-border hover:text-brand-blue"
+            className="absolute left-1 top-1/2 -translate-y-1/2 w-10 h-12 glass-dark border border-white/15 shadow-xl flex items-center justify-center rounded-r-xl opacity-0 group-hover/grid:opacity-100 transition-opacity z-20 hover:bg-white/10 text-white"
           >
             <span className="material-symbols-outlined">chevron_left</span>
           </button>
@@ -335,14 +344,14 @@ export default function HomePage() {
               const el = document.getElementById("tabbed-product-scroll");
               el.scrollBy({ left: 300, behavior: "smooth" });
             }}
-            className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-12 bg-white shadow-xl flex items-center justify-center rounded-l-xl opacity-0 group-hover/grid:opacity-100 transition-opacity z-20 border border-surface-border hover:text-brand-blue"
+            className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-12 glass-dark border border-white/15 shadow-xl flex items-center justify-center rounded-l-xl opacity-0 group-hover/grid:opacity-100 transition-opacity z-20 hover:bg-white/10 text-white"
           >
             <span className="material-symbols-outlined">chevron_right</span>
           </button>
 
           {categoryLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {[...Array(5)].map((_, i) => <div key={i} className="skeleton h-64 rounded-lg" />)}
+              {[...Array(5)].map((_, i) => <div key={i} className="skeleton bg-white/5 h-64 rounded-lg" />)}
             </div>
           ) : (
             <div
@@ -352,9 +361,9 @@ export default function HomePage() {
             >
               {categoryProducts.length > 0 ? (
                 categoryProducts.map((p) => (
-                  <div key={p.id} className="min-w-[180px] md:min-w-[240px] max-w-[240px] bg-white rounded-2xl p-3 md:p-4 hover:shadow-[0_20px_50px_rgba(29,78,216,0.15)] hover:-translate-y-2 transition-all duration-500 group/card flex flex-col border border-surface-border hover:border-brand-blue/30 relative">
+                  <div key={p.id} className="min-w-[180px] md:min-w-[240px] max-w-[240px] glass-card p-3 md:p-4 hover:-translate-y-2 transition-all duration-500 group/card flex flex-col relative">
                     <Link to={`/products/${p.id}`} className="flex flex-col flex-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue rounded-xl">
-                      <div className="relative aspect-square mb-4 overflow-hidden rounded-xl bg-surface-soft">
+                      <div className="relative aspect-square mb-4 overflow-hidden rounded-xl bg-white/5 border border-white/10">
                         {getFirstImage(p) ? (
                           <img
                             src={getImageUrl(getFirstImage(p))}
@@ -362,23 +371,23 @@ export default function HomePage() {
                             className="w-full h-full object-contain transform group-hover/card:scale-110 transition-transform duration-700 ease-out"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-text-muted">
+                          <div className="w-full h-full flex items-center justify-center text-white/40">
                             <span className="material-symbols-outlined" style={{ fontSize: 48 }}>image_not_supported</span>
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-brand-blue/5 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-white/5 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
                       </div>
-                      <h3 className="text-sm font-bold text-text-primary mb-2 line-clamp-2 flex-grow h-10 group-hover/card:text-brand-blue transition-colors">
+                      <h3 className="text-sm font-bold text-white mb-2 line-clamp-2 flex-grow h-10 group-hover/card:text-green-300 transition-colors">
                         {p.name}
                       </h3>
                       <div className="mt-auto flex items-center justify-between">
-                        <p className="text-brand-blue font-black text-base md:text-lg">{formatVND(p.price)}</p>
+                        <p className="text-blue-400 font-extrabold text-base md:text-lg">{formatVND(p.price)}</p>
                       </div>
                     </Link>
 
                     <button
                       onClick={() => handleAddCart(p)}
-                      className="mt-4 w-full py-3 bg-gradient-to-r from-brand-green to-brand-blue text-white text-xs font-black rounded-xl opacity-0 group-hover/card:opacity-100 transition-all transform translate-y-4 group-hover/card:translate-y-0 shadow-lg shadow-brand-blue/20 flex items-center justify-center gap-2 active:scale-95"
+                      className="mt-4 w-full py-3 glass-btn-primary text-xs font-black rounded-xl opacity-100 md:opacity-0 group-hover/card:opacity-100 transition-all transform md:translate-y-4 group-hover/card:translate-y-0 flex items-center justify-center gap-2 active:scale-95"
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add_shopping_cart</span>
                       THÊM VÀO GIỎ
@@ -386,7 +395,7 @@ export default function HomePage() {
                   </div>
                 ))
               ) : (
-                <div className="col-span-full py-16 text-center text-text-muted italic flex flex-col items-center gap-2">
+                <div className="col-span-full py-16 text-center text-white/40 italic flex flex-col items-center gap-2 w-full">
                   <span className="material-symbols-outlined text-4xl opacity-20">inventory_2</span>
                   Chưa có sản phẩm nào trong danh mục này.
                 </div>
@@ -396,20 +405,20 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-gradient-to-r from-brand-green to-brand-blue py-14">
-        <div className="max-w-[1280px] mx-auto px-4 md:px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-white text-center">
+      <section className="glass bg-white/45 border border-white/50 backdrop-blur-md py-14 max-w-[1280px] mx-auto rounded-3xl shadow-glass my-12">
+        <div className="max-w-[1280px] mx-auto px-4 md:px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {[
-            { icon: "verified_user", title: "Hàng chính hãng 100%", desc: "Cam kết từ nhà phân phối" },
+            { icon: "shield", title: "Hàng chính hãng 100%", desc: "Cam kết từ nhà phân phối" },
             { icon: "local_shipping", title: "Giao hàng toàn quốc", desc: "1-3 ngày làm việc" },
-            { icon: "support_agent", title: "Hỗ trợ 7/7", desc: "Tư vấn miễn phí" },
-            { icon: "cached", title: "Đổi trả 30 ngày", desc: "Hoàn tiền nếu lỗi hãng" },
+            { icon: "headset", title: "Hỗ trợ 7/7", desc: "Tư vấn miễn phí" },
+            { icon: "sync", title: "Đổi trả 30 ngày", desc: "Hoàn tiền nếu lỗi hãng" },
           ].map(({ icon, title, desc }) => (
             <div key={title} className="flex flex-col items-center gap-3">
-              <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center">
-                <span className="material-symbols-outlined text-white" style={{ fontSize: 28, fontVariationSettings: "'FILL' 1" }}>{icon}</span>
+              <div className="w-14 h-14 rounded-full bg-gradient-to-b from-[#82c5f9] to-[#2a94f6] border-2 border-white flex items-center justify-center text-white shadow-[0_4px_10px_rgba(42,148,246,0.25)] transition-transform duration-300 hover:scale-110">
+                <span className="material-symbols-outlined" style={{ fontSize: 24, fontVariationSettings: "'FILL' 1" }}>{icon}</span>
               </div>
-              <h3 className="font-bold text-sm">{title}</h3>
-              <p className="text-white/75 text-xs">{desc}</p>
+              <h3 className="font-bold text-sm text-slate-800">{title}</h3>
+              <p className="text-slate-500 text-xs font-semibold">{desc}</p>
             </div>
           ))}
         </div>
@@ -457,4 +466,14 @@ function categoryColor(index) {
     "bg-brand-green-light text-brand-green",
     "bg-brand-teal-light text-brand-teal",
   ][index % 3];
+}
+
+function normalizeOptionList(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || "").trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value.split(/[;,|\n\r]+/).map((item) => item.trim()).filter(Boolean);
+  }
+  return [];
 }

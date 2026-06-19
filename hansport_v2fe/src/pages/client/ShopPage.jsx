@@ -116,7 +116,12 @@ export default function ShopPage() {
   const handleAddCart = async (product) => {
     if (!user) { toast.error("Vui lòng đăng nhập để thêm vào giỏ hàng!"); return; }
     try {
-      await cartApi.addToCart(product.id, 1);
+      const availableColors = normalizeOptionList(product.colorOptions);
+      const availableSizes = normalizeOptionList(product.sizeOptions);
+      await cartApi.addToCart(product.id, 1, {
+        selectedColor: availableColors[0] || "",
+        selectedSize: availableSizes[0] || "",
+      });
       const cartRes = await cartApi.getCart();
       setCart(cartRes.data?.data?.cartDetails || []);
       toast.success(`Đã thêm "${product.name}" vào giỏ hàng!`);
@@ -136,18 +141,18 @@ export default function ShopPage() {
 
   const Sidebar = () => (
     <aside className="w-full">
-      <div className="card p-5 mb-4">
-        <h3 className="font-bold text-text-primary mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-brand-blue" style={{ fontSize: 20 }}>tune</span>
+      <div className="glass p-5 mb-4 border border-white/10 shadow-glass">
+        <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+          <span className="material-symbols-outlined text-green-400" style={{ fontSize: 20 }}>tune</span>
           Bộ lọc sản phẩm
         </h3>
 
         <div className="mb-5">
-          <p className="text-sm font-semibold text-text-secondary mb-3 uppercase tracking-wide">Danh mục</p>
+          <p className="text-sm font-semibold text-white/60 mb-3 uppercase tracking-wide">Danh mục</p>
           <div className="flex flex-col gap-1">
             <button
               onClick={() => setParam("category", "")}
-              className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${!category ? "bg-brand-blue-light text-brand-blue font-semibold" : "text-text-secondary hover:bg-surface-muted"}`}
+              className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${!category ? "bg-white/15 text-white border border-white/10 font-semibold shadow-inner" : "text-white/70 hover:bg-white/5 hover:text-white"}`}
             >
               Tất cả danh mục
             </button>
@@ -155,25 +160,25 @@ export default function ShopPage() {
               <button
                 key={item.name}
                 onClick={() => setParam("category", category === item.name ? "" : item.name)}
-                className={`text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center justify-between gap-2 ${category === item.name ? "bg-brand-blue-light text-brand-blue font-semibold" : "text-text-secondary hover:bg-surface-muted"}`}
+                className={`text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center justify-between gap-2 ${category === item.name ? "bg-white/15 text-white border border-white/10 font-semibold shadow-inner" : "text-white/70 hover:bg-white/5 hover:text-white"}`}
               >
                 <span>{item.name}</span>
-                <span className="text-xs text-text-muted">{item.productCount}</span>
+                <span className="text-xs text-white/40">{item.productCount}</span>
               </button>
             ))}
           </div>
         </div>
 
         <div className="mb-5">
-          <p className="text-sm font-semibold text-text-secondary mb-3 uppercase tracking-wide">Thương hiệu</p>
+          <p className="text-sm font-semibold text-white/60 mb-3 uppercase tracking-wide">Thương hiệu</p>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setParam("brand", "")}
-              className={`px-3 py-1.5 rounded-pill text-xs font-semibold transition-all ${!brand ? "text-white bg-gradient-to-r from-brand-green to-brand-blue" : "border border-surface-border text-text-secondary hover:border-brand-blue hover:text-brand-blue"}`}
+              className={`px-3 py-1.5 rounded-pill text-xs font-semibold transition-all ${!brand ? "text-white bg-gradient-to-r from-brand-green to-brand-blue shadow-[0_0_8px_rgba(22,163,74,0.3)]" : "border border-white/10 bg-white/5 text-white/70 hover:border-white/30 hover:text-white"}`}
             >Tất cả</button>
             {brandsForFilter.map((b) => (
               <button key={b} onClick={() => setParam("brand", brand === b ? "" : b)}
-                className={`px-3 py-1.5 rounded-pill text-xs font-semibold transition-all ${brand === b ? "text-white bg-gradient-to-r from-brand-green to-brand-blue" : "border border-surface-border text-text-secondary hover:border-brand-blue hover:text-brand-blue"}`}>
+                className={`px-3 py-1.5 rounded-pill text-xs font-semibold transition-all ${brand === b ? "text-white bg-gradient-to-r from-brand-green to-brand-blue shadow-[0_0_8px_rgba(22,163,74,0.3)]" : "border border-white/10 bg-white/5 text-white/70 hover:border-white/30 hover:text-white"}`}>
                 {b}
               </button>
             ))}
@@ -181,15 +186,15 @@ export default function ShopPage() {
         </div>
 
         <div className="mb-5">
-          <p className="text-sm font-semibold text-text-secondary mb-3 uppercase tracking-wide">Đối tượng</p>
+          <p className="text-sm font-semibold text-white/60 mb-3 uppercase tracking-wide">Đối tượng</p>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => setParam("target", "")}
-              className={`px-3 py-1.5 rounded-pill text-xs font-semibold transition-all ${!target ? "text-white bg-gradient-to-r from-brand-green to-brand-blue" : "border border-surface-border text-text-secondary hover:border-brand-blue hover:text-brand-blue"}`}>
+              className={`px-3 py-1.5 rounded-pill text-xs font-semibold transition-all ${!target ? "text-white bg-gradient-to-r from-brand-green to-brand-blue shadow-[0_0_8px_rgba(22,163,74,0.3)]" : "border border-white/10 bg-white/5 text-white/70 hover:border-white/30 hover:text-white"}`}>
               Tất cả
             </button>
             {TARGETS.map((t) => (
               <button key={t} onClick={() => setParam("target", target === t ? "" : t)}
-                className={`px-3 py-1.5 rounded-pill text-xs font-semibold transition-all ${target === t ? "text-white bg-gradient-to-r from-brand-green to-brand-blue" : "border border-surface-border text-text-secondary hover:border-brand-blue hover:text-brand-blue"}`}>
+                className={`px-3 py-1.5 rounded-pill text-xs font-semibold transition-all ${target === t ? "text-white bg-gradient-to-r from-brand-green to-brand-blue shadow-[0_0_8px_rgba(22,163,74,0.3)]" : "border border-white/10 bg-white/5 text-white/70 hover:border-white/30 hover:text-white"}`}>
                 {t}
               </button>
             ))}
@@ -197,15 +202,15 @@ export default function ShopPage() {
         </div>
 
         <div>
-          <p className="text-sm font-semibold text-text-secondary mb-3 uppercase tracking-wide">Khoảng giá</p>
+          <p className="text-sm font-semibold text-white/60 mb-3 uppercase tracking-wide">Khoảng giá</p>
           <div className="flex flex-col gap-2">
             <button onClick={() => setParam("price", "")}
-              className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${!priceKey ? "bg-brand-blue-light text-brand-blue font-semibold" : "text-text-secondary hover:bg-surface-muted"}`}>
+              className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${!priceKey ? "bg-white/15 text-white border border-white/10 font-semibold shadow-inner" : "text-white/70 hover:bg-white/5 hover:text-white"}`}>
               Tất cả mức giá
             </button>
             {PRICE_RANGES.map((r) => (
               <button key={r.label} onClick={() => setParam("price", priceKey === r.label ? "" : r.label)}
-                className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${priceKey === r.label ? "bg-brand-blue-light text-brand-blue font-semibold" : "text-text-secondary hover:bg-surface-muted"}`}>
+                className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${priceKey === r.label ? "bg-white/15 text-white border border-white/10 font-semibold shadow-inner" : "text-white/70 hover:bg-white/5 hover:text-white"}`}>
                 {r.label}
               </button>
             ))}
@@ -215,7 +220,7 @@ export default function ShopPage() {
         {(category || brand || target || priceKey) && (
           <button
             onClick={() => { setSearchParams({ page: "0" }); }}
-            className="mt-4 w-full py-2 rounded-lg text-sm text-danger font-semibold hover:bg-red-50 transition-all border border-red-200 flex items-center justify-center gap-1"
+            className="mt-4 w-full py-2 rounded-lg text-sm text-red-400 font-semibold hover:bg-red-500/10 transition-all border border-red-500/20 flex items-center justify-center gap-1"
           >
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>clear</span>
             Xóa bộ lọc
@@ -226,25 +231,23 @@ export default function ShopPage() {
   );
 
   return (
-    <div className="min-h-screen bg-surface-soft">
-
-
-      <div className="bg-white border-b border-surface-border">
+    <div className="min-h-screen bg-transparent">
+      <div className="bg-white/5 border-b border-white/10 backdrop-blur-md">
         <div className="max-w-[1280px] mx-auto px-4 md:px-6 py-5">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-heading font-bold text-text-primary">
+              <h1 className="text-heading font-bold text-white">
                 {getShopTitle({ q, category, brand })}
               </h1>
               {!loading && (
-                <p className="text-text-muted text-sm mt-1">
+                <p className="text-white/60 text-sm mt-1">
                   {totalElements > 0 ? `${totalElements} sản phẩm` : "Không tìm thấy sản phẩm"}
                 </p>
               )}
             </div>
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="md:hidden flex items-center gap-2 px-4 py-2 rounded-lg border border-surface-border text-text-secondary hover:border-brand-blue hover:text-brand-blue transition-all text-sm font-semibold"
+              className="md:hidden flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all text-sm font-semibold glass"
             >
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>tune</span>
               Bộ lọc
@@ -269,12 +272,12 @@ export default function ShopPage() {
               </div>
             ) : products.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="w-20 h-20 rounded-full bg-surface-muted flex items-center justify-center mb-4">
-                  <span className="material-symbols-outlined text-text-muted" style={{ fontSize: 40 }}>search_off</span>
+                <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4">
+                  <span className="material-symbols-outlined text-white/40" style={{ fontSize: 40 }}>search_off</span>
                 </div>
-                <h3 className="text-title font-bold text-text-primary mb-2">Không tìm thấy sản phẩm</h3>
-                <p className="text-text-muted mb-6">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
-                <button onClick={() => setSearchParams({})} className="btn-primary">Xem tất cả sản phẩm</button>
+                <h3 className="text-title font-bold text-white mb-2">Không tìm thấy sản phẩm</h3>
+                <p className="text-white/60 mb-6">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+                <button onClick={() => setSearchParams({})} className="glass-btn-primary">Xem tất cả sản phẩm</button>
               </div>
             ) : (
               <>
@@ -289,7 +292,7 @@ export default function ShopPage() {
                     <button
                       onClick={() => goToPage(page - 1)}
                       disabled={page === 0}
-                      className="w-10 h-10 rounded-lg border border-surface-border flex items-center justify-center text-text-secondary hover:border-brand-blue hover:text-brand-blue disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                      className="w-10 h-10 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-all glass"
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: 20 }}>chevron_left</span>
                     </button>
@@ -297,7 +300,7 @@ export default function ShopPage() {
                       const isActive = p_ === page;
                       return (
                         <button key={p_} onClick={() => goToPage(p_)}
-                          className={`w-10 h-10 rounded-lg text-sm font-semibold transition-all ${isActive ? "text-white shadow-blue-glow" : "border border-surface-border text-text-secondary hover:border-brand-blue hover:text-brand-blue"}`}
+                          className={`w-10 h-10 rounded-xl text-sm font-semibold transition-all flex items-center justify-center ${isActive ? "text-white shadow-[0_0_12px_rgba(22,163,74,0.4)]" : "border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white glass"}`}
                           style={isActive ? { background: "linear-gradient(135deg, #16a34a, #1d4ed8)" } : {}}
                         >
                           {p_ + 1}
@@ -307,7 +310,7 @@ export default function ShopPage() {
                     <button
                       onClick={() => goToPage(page + 1)}
                       disabled={page >= totalPages - 1}
-                      className="w-10 h-10 rounded-lg border border-surface-border flex items-center justify-center text-text-secondary hover:border-brand-blue hover:text-brand-blue disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                      className="w-10 h-10 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-all glass"
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: 20 }}>chevron_right</span>
                     </button>
@@ -328,4 +331,14 @@ function getShopTitle({ q, category, brand }) {
   if (category) return category;
   if (brand) return `Sản phẩm ${brand}`;
   return "Tất cả sản phẩm";
+}
+
+function normalizeOptionList(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || "").trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value.split(/[;,|\n\r]+/).map((item) => item.trim()).filter(Boolean);
+  }
+  return [];
 }
