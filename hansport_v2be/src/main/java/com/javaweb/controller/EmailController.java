@@ -20,8 +20,7 @@ public class EmailController {
 
     @PostMapping("/orders/{id}/send-email")
     @ApiMessage("Send order email")
-    public String sendOrderEmail(@PathVariable long id) throws IdInvalidException {
+    public void sendOrderEmail(@PathVariable long id) throws IdInvalidException {
         this.orderService.sendOrderEmail(id);
-        return "ok";
     }
 }

@@ -18,6 +18,7 @@ public class ResUserDTO {
     private String fullName;
     private String address;
     private String phone;
+    private String avatar;
     private ResRoleDTO role;
     private Instant createdAt;
     private Instant updatedAt;

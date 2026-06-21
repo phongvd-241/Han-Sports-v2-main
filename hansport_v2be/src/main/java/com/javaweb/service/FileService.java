@@ -22,7 +22,7 @@ import java.util.Set;
 @Service
 public class FileService {
 
-    private static final Set<String> ALLOWED_FOLDERS = Set.of("product", "logo", "banner");
+    private static final Set<String> ALLOWED_FOLDERS = Set.of("product", "logo", "banner", "avatar");
     private static final Set<String> ALLOWED_IMAGE_EXTENSIONS = Set.of("jpg", "jpeg", "png", "webp");
     private static final Map<String, Set<String>> ALLOWED_CONTENT_TYPES = Map.of(
             "jpg", Set.of("image/jpeg"),

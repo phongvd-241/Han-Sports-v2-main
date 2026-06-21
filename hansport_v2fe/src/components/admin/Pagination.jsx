@@ -44,7 +44,8 @@ export default function Pagination({ page, totalPages, onPageChange }) {
           type="button"
           onClick={goToFirst}
           disabled={page === 0}
-          className="px-2.5 py-1.5 rounded-lg border border-surface-border text-xs font-semibold hover:border-brand-blue hover:text-brand-blue disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          aria-label="Trang đầu tiên"
+          className="px-2.5 py-1.5 rounded-lg border border-surface-border text-xs font-semibold hover:border-brand-blue hover:text-brand-blue disabled:opacity-40 disabled:cursor-not-allowed transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-blue"
         >
           Đầu
         </button>
@@ -52,7 +53,8 @@ export default function Pagination({ page, totalPages, onPageChange }) {
           type="button"
           onClick={previousPage}
           disabled={page === 0}
-          className="px-2.5 py-1.5 rounded-lg border border-surface-border text-xs font-semibold hover:border-brand-blue hover:text-brand-blue disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          aria-label="Trang trước"
+          className="px-2.5 py-1.5 rounded-lg border border-surface-border text-xs font-semibold hover:border-brand-blue hover:text-brand-blue disabled:opacity-40 disabled:cursor-not-allowed transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-blue"
         >
           Trước
         </button>
@@ -71,7 +73,9 @@ export default function Pagination({ page, totalPages, onPageChange }) {
               key={p}
               type="button"
               onClick={() => onPageChange(p)}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all ${
+              aria-label={isActive ? `Trang hiện tại, Trang ${p + 1}` : `Đi đến trang ${p + 1}`}
+              aria-current={isActive ? "page" : undefined}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-blue ${
                 isActive
                   ? "bg-brand-blue text-white shadow-blue-glow border border-brand-blue"
                   : "border border-surface-border text-text-secondary hover:border-brand-blue hover:text-brand-blue"
@@ -86,7 +90,8 @@ export default function Pagination({ page, totalPages, onPageChange }) {
           type="button"
           onClick={nextPage}
           disabled={page >= totalPages - 1}
-          className="px-2.5 py-1.5 rounded-lg border border-surface-border text-xs font-semibold hover:border-brand-blue hover:text-brand-blue disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          aria-label="Trang sau"
+          className="px-2.5 py-1.5 rounded-lg border border-surface-border text-xs font-semibold hover:border-brand-blue hover:text-brand-blue disabled:opacity-40 disabled:cursor-not-allowed transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-blue"
         >
           Sau
         </button>
@@ -94,7 +99,8 @@ export default function Pagination({ page, totalPages, onPageChange }) {
           type="button"
           onClick={goToLast}
           disabled={page >= totalPages - 1}
-          className="px-2.5 py-1.5 rounded-lg border border-surface-border text-xs font-semibold hover:border-brand-blue hover:text-brand-blue disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          aria-label="Trang cuối cùng"
+          className="px-2.5 py-1.5 rounded-lg border border-surface-border text-xs font-semibold hover:border-brand-blue hover:text-brand-blue disabled:opacity-40 disabled:cursor-not-allowed transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-blue"
         >
           Cuối
         </button>

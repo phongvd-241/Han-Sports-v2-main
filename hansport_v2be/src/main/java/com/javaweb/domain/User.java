@@ -32,6 +32,7 @@ public class User {
     private String fullName;
     private String address;
     private String phone;
+    private String avatar;
 
     @ManyToOne
     @JoinColumn(name = "role_id")

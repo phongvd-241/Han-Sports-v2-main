@@ -173,6 +173,7 @@ public class UserService {
         }
         currentUser.setPhone(normalizeNullable(req.getPhone()));
         currentUser.setAddress(normalizeNullable(req.getAddress()));
+        currentUser.setAvatar(normalizeNullable(req.getAvatar()));
 
         return this.convertToResUserDTO(this.userRepository.save(currentUser));
     }
@@ -272,6 +273,7 @@ public class UserService {
         resUserDTO.setFullName(user.getFullName());
         resUserDTO.setAddress(user.getAddress());
         resUserDTO.setPhone(user.getPhone());
+        resUserDTO.setAvatar(user.getAvatar());
         resUserDTO.setCreatedAt(user.getCreatedAt());
         resUserDTO.setUpdatedAt(user.getUpdatedAt());
         resUserDTO.setRole(this.convertToResRoleDTO(user.getRole()));

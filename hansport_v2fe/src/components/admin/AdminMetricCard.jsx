@@ -8,7 +8,7 @@ export default function AdminMetricCard({ icon, label, value, hint, tone = "blue
   }[tone] || "bg-brand-blue-light text-brand-blue border-brand-blue/25";
 
   return (
-    <div className="card p-4 flex items-center gap-3 hover:-translate-y-1">
+    <div className="card p-4 flex items-center gap-3.5 hover:-translate-y-1.5 hover:shadow-card-hover transition-all duration-300 ease-smooth">
       <div className={`w-11 h-11 rounded-xl border flex items-center justify-center flex-shrink-0 ${toneClass}`}>
         <span className="material-symbols-outlined" style={{ fontSize: 22 }}>{icon}</span>
       </div>

@@ -3,8 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { authApi } from "../../api/authApi";
 import { orderApi } from "../../api/orderApi";
+import { productApi } from "../../api/productApi";
 import { useAuthStore } from "../../store/useAuthStore";
-import { formatDate, formatVND, ORDER_STATUS } from "../../utils/constants";
+import { formatDate, formatVND, ORDER_STATUS, API_BASE_URL } from "../../utils/constants";
 
 const EMPTY_PROFILE = { fullName: "", email: "", phone: "", address: "" };
 const EMPTY_PASSWORD = { currentPassword: "", newPassword: "", confirmPassword: "" };
@@ -21,6 +22,49 @@ export default function ProfilePage() {
   const [pwForm, setPwForm] = useState(EMPTY_PASSWORD);
   const [errors, setErrors] = useState({});
   const [orders, setOrders] = useState([]);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ảnh đại diện không được vượt quá 5MB.");
+      return;
+    }
+
+    const allowedExtensions = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (!allowedExtensions.includes(file.type)) {
+      toast.error("Chỉ chấp nhận định dạng JPG, JPEG, PNG hoặc WebP.");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    const loadingToast = toast.loading("Đang tải ảnh đại diện lên...");
+    try {
+      const uploadRes = await productApi.uploadFile(file, "avatar");
+      const fileNames = uploadRes.data?.data?.fileName || uploadRes.data?.fileName || [];
+      if (fileNames.length === 0) {
+        throw new Error("Không nhận được tên file phản hồi");
+      }
+      const uploadedFileName = fileNames[0];
+
+      const payload = {
+        fullName: form.fullName.trim(),
+        phone: form.phone.trim(),
+        address: form.address.trim(),
+        avatar: uploadedFileName,
+      };
+      const updateRes = await authApi.updateAccount(payload);
+      const updatedUser = updateRes.data?.data || updateRes.data;
+      hydrateProfile(updatedUser);
+      toast.success("Cập nhật ảnh đại diện thành công.", { id: loadingToast });
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Không thể tải lên ảnh đại diện.", { id: loadingToast });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
   const currentEmail = user?.email;
   const currentFullName = user?.fullName || user?.name || "";
   const currentPhone = user?.phone || "";
@@ -116,6 +160,7 @@ export default function ProfilePage() {
         fullName: form.fullName.trim(),
         phone: form.phone.trim(),
         address: form.address.trim(),
+        avatar: user?.avatar || null,
       };
       const res = await authApi.updateAccount(payload);
       const updatedUser = res.data?.data || res.data;
@@ -181,11 +226,49 @@ export default function ProfilePage() {
       <div className="max-w-5xl mx-auto px-4 md:px-6">
         <section className="rounded-xl overflow-hidden bg-admin-bg text-white mb-6 shadow-card">
           <div className="p-6 md:p-8 flex flex-col lg:flex-row lg:items-center gap-6">
-            <div
-              className="w-24 h-24 rounded-xl flex items-center justify-center text-white text-3xl font-extrabold flex-shrink-0 shadow-brand-glow border border-white/20"
-              style={{ background: "linear-gradient(135deg, #16a34a, #0d9488, #1d4ed8)" }}
-            >
-              {getInitials(form.fullName || user?.fullName)}
+            <div className="relative group flex-shrink-0">
+              {uploadingAvatar ? (
+                <div className="w-24 h-24 rounded-xl flex items-center justify-center bg-white/10 border border-white/20">
+                  <span className="animate-spin material-symbols-outlined text-white text-2xl">sync</span>
+                </div>
+              ) : user?.avatar ? (
+                <div className="relative w-24 h-24 rounded-xl overflow-hidden shadow-brand-glow border border-white/20">
+                  <img
+                    src={`${API_BASE_URL}/api/v1/files?fileName=${encodeURIComponent(user.avatar)}&folder=avatar`}
+                    alt="Avatar"
+                    className="w-full h-full object-cover"
+                  />
+                  <label
+                    htmlFor="avatar-upload"
+                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-xs cursor-pointer transition-all duration-200"
+                  >
+                    <span className="material-symbols-outlined mb-1" style={{ fontSize: 20 }}>photo_camera</span>
+                    <span>Thay đổi</span>
+                  </label>
+                </div>
+              ) : (
+                <div
+                  className="w-24 h-24 rounded-xl flex items-center justify-center text-white text-3xl font-extrabold shadow-brand-glow border border-white/20 relative overflow-hidden"
+                  style={{ background: "linear-gradient(135deg, #16a34a, #0d9488, #1d4ed8)" }}
+                >
+                  {getInitials(form.fullName || user?.fullName)}
+                  <label
+                    htmlFor="avatar-upload"
+                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-xs cursor-pointer transition-all duration-200"
+                  >
+                    <span className="material-symbols-outlined mb-1" style={{ fontSize: 20 }}>photo_camera</span>
+                    <span>Tải ảnh</span>
+                  </label>
+                </div>
+              )}
+              <input
+                type="file"
+                id="avatar-upload"
+                accept="image/png, image/jpeg, image/jpg, image/webp"
+                onChange={handleAvatarChange}
+                className="hidden"
+                disabled={uploadingAvatar}
+              />
             </div>
 
             <div className="flex-1 text-center lg:text-left min-w-0">

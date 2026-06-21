@@ -153,6 +153,71 @@ export default function UsersPage() {
   const userOnPage = users.filter((item) => item.role?.name !== "ADMIN").length;
   const currentUserVisible = users.some((item) => item.id === currentUser?.id);
 
+  const renderUserCard = (item, index) => {
+    const isSelf = item.id === currentUser?.id;
+    return (
+      <div className="flex flex-col gap-3">
+        {/* Hàng 1: Avatar + Tên + Badge Current User */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-brand-blue text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+            {avatar(item.fullName)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-text-primary text-sm truncate">
+                {item.fullName || "-"}
+              </span>
+              <span className="text-[11px] text-text-muted font-semibold">
+                #{page * 10 + index + 1}
+              </span>
+            </div>
+            {isSelf && (
+              <p className="text-[10px] text-brand-blue font-bold mt-0.5">Tài khoản hiện tại</p>
+            )}
+          </div>
+        </div>
+
+        {/* Hàng 2: Chi tiết email, điện thoại, ngày đăng ký */}
+        <div className="flex flex-col gap-1 text-xs text-text-secondary bg-surface-soft p-2.5 rounded-lg border border-surface-border">
+          <div className="flex justify-between items-center">
+            <span className="text-text-muted">Email:</span>
+            <span className="font-medium truncate max-w-[200px]">{item.email}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-text-muted">Số điện thoại:</span>
+            <span className="font-medium">{item.phone || "-"}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-text-muted">Ngày đăng ký:</span>
+            <span className="text-text-muted text-[10px]">{formatDate(item.createdAt)}</span>
+          </div>
+        </div>
+
+        {/* Hàng 3: Vai trò + Action buttons */}
+        <div className="flex items-center justify-between pt-2 border-t border-surface-border border-dashed mt-1">
+          <div>{roleBadge(item.role)}</div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => openEdit(item)}
+              className="flex items-center gap-1 py-1.5 px-3 bg-brand-blue-light text-brand-blue rounded-xl text-xs font-bold hover:bg-brand-blue hover:text-white transition-colors"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>edit</span>
+              Sửa
+            </button>
+            <button
+              disabled={isSelf}
+              onClick={() => openDelete(item)}
+              className="flex items-center gap-1 py-1.5 px-3 bg-red-50 text-danger rounded-xl text-xs font-bold hover:bg-danger hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete</span>
+              Xóa
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <AdminPageHeader
@@ -167,10 +232,10 @@ export default function UsersPage() {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <AdminMetricCard icon="group" label="Tổng tài khoản" value={totalElements.toLocaleString("vi-VN")} hint="Theo kết quả API" tone="blue" />
-        <AdminMetricCard icon="admin_panel_settings" label="Admin trang này" value={adminOnPage.toLocaleString("vi-VN")} hint="Dữ liệu đang hiển thị" tone="teal" />
-        <AdminMetricCard icon="person" label="Khách hàng trang này" value={userOnPage.toLocaleString("vi-VN")} hint={`Trang ${page + 1}/${totalPages}`} tone="green" />
-        <AdminMetricCard icon="verified_user" label="Tài khoản hiện tại" value={currentUserVisible ? "Đang hiển thị" : "Không ở trang này"} hint="Self-delete đã bị khóa" tone={currentUserVisible ? "amber" : "blue"} />
+        <AdminMetricCard icon="group" label="Tổng tài khoản" value={totalElements.toLocaleString("vi-VN")} tone="blue" />
+        <AdminMetricCard icon="admin_panel_settings" label="Admin trang này" value={adminOnPage.toLocaleString("vi-VN")} tone="teal" />
+        <AdminMetricCard icon="person" label="Khách hàng trang này" value={userOnPage.toLocaleString("vi-VN")} tone="green" />
+        <AdminMetricCard icon="verified_user" label="Tài khoản hiện tại" value={currentUserVisible ? "Đang hiển thị" : "Không ở trang này"} tone={currentUserVisible ? "amber" : "blue"} />
       </div>
 
       <AdminToolbar>
@@ -198,6 +263,8 @@ export default function UsersPage() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
+        mobileCardRenderer={renderUserCard}
+        items={users}
       >
         {users.map((item, index) => {
           const isSelf = item.id === currentUser?.id;
