@@ -12,6 +12,8 @@ import com.javaweb.domain.response.role.ResRoleDTO;
 import com.javaweb.domain.response.user.ResCreateUserDTO;
 import com.javaweb.domain.response.user.ResUpdateUserDTO;
 import com.javaweb.domain.response.user.ResUserDTO;
+import com.javaweb.repository.CartRepository;
+import com.javaweb.repository.OrderRepository;
 import com.javaweb.repository.RoleRepository;
 import com.javaweb.repository.UserRepository;
 import com.javaweb.util.error.IdInvalidException;
@@ -31,11 +33,17 @@ import java.util.stream.Collectors;
 public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final CartRepository cartRepository;
+    private final OrderRepository orderRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, RoleRepository roleRepository,
+                       CartRepository cartRepository, OrderRepository orderRepository,
+                       PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.cartRepository = cartRepository;
+        this.orderRepository = orderRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -122,7 +130,38 @@ public class UserService {
         if (currentUser.getId() == id) {
             throw new IdInvalidException("Cannot delete the currently signed-in account");
         }
-        this.userRepository.deleteById(id);
+        User deletedUser = this.userRepository.findById(id)
+                .orElseThrow(() -> new IdInvalidException("User không tồn tại"));
+        if (this.orderRepository.existsByUser_Id(id)) {
+            throw new IdInvalidException("Không thể xóa người dùng đã có đơn hàng. Hãy khóa tài khoản thay vì xóa.");
+        }
+        if (this.cartRepository.existsByUser_Id(id)) {
+            throw new IdInvalidException("Không thể xóa người dùng đang có giỏ hàng. Hãy khóa tài khoản hoặc xử lý giỏ hàng trước.");
+        }
+        this.userRepository.delete(deletedUser);
+    }
+
+    @Transactional
+    public ResUserDTO updateUserLockStatus(long id, boolean locked, String currentUserEmail) throws IdInvalidException {
+        User currentUser = this.userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new IdInvalidException("Current user does not exist"));
+        if (currentUser.getId() == id && locked) {
+            throw new IdInvalidException("Cannot lock the currently signed-in account");
+        }
+
+        User targetUser = this.userRepository.findById(id)
+                .orElseThrow(() -> new IdInvalidException("User không tồn tại"));
+        targetUser.setLocked(locked);
+        if (locked) {
+            targetUser.setRefreshToken(null);
+        }
+        return this.convertToResUserDTO(this.userRepository.save(targetUser));
+    }
+
+    public void ensureUserNotLocked(User user) throws IdInvalidException {
+        if (user != null && user.isLocked()) {
+            throw new IdInvalidException("Tài khoản đã bị khóa");
+        }
     }
 
     public List<User> getAllUsers(){
@@ -243,6 +282,7 @@ public class UserService {
         resCreateUserDTO.setFullName(currentUser.getFullName());
         resCreateUserDTO.setAddress(currentUser.getAddress());
         resCreateUserDTO.setPhone(currentUser.getPhone());
+        resCreateUserDTO.setLocked(currentUser.isLocked());
         resCreateUserDTO.setCreatedAt(currentUser.getCreatedAt());
         resCreateUserDTO.setRole(this.convertToResRoleDTO(currentUser.getRole()));
         return resCreateUserDTO;
@@ -255,6 +295,7 @@ public class UserService {
         resUpdateUserDTO.setFullName(updateUser.getFullName());
         resUpdateUserDTO.setAddress(updateUser.getAddress());
         resUpdateUserDTO.setPhone(updateUser.getPhone());
+        resUpdateUserDTO.setLocked(updateUser.isLocked());
         resUpdateUserDTO.setUpdatedAt(updateUser.getUpdatedAt());
         resUpdateUserDTO.setRole(this.convertToResRoleDTO(updateUser.getRole()));
         return resUpdateUserDTO;
@@ -275,6 +316,7 @@ public class UserService {
         resUserDTO.setAddress(user.getAddress());
         resUserDTO.setPhone(user.getPhone());
         resUserDTO.setAvatar(user.getAvatar());
+        resUserDTO.setLocked(user.isLocked());
         resUserDTO.setCreatedAt(user.getCreatedAt());
         resUserDTO.setUpdatedAt(user.getUpdatedAt());
         resUserDTO.setRole(this.convertToResRoleDTO(user.getRole()));

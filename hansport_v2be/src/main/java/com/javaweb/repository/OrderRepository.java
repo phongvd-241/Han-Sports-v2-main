@@ -16,6 +16,7 @@ import java.util.Optional;
 public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecificationExecutor<Order> {
     Optional<Order> findByUserAndId(User user, Long id);
     Page<Order> findByUser(User user, Pageable pageable);
+    boolean existsByUser_Id(long userId);
 
     List<Order> findTop5ByOrderByCreatedAtDesc();
 

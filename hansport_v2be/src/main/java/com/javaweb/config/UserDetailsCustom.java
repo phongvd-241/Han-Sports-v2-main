@@ -28,6 +28,10 @@ public class UserDetailsCustom implements UserDetailsService {
         String authority = roleName.startsWith("ROLE_") ? roleName : "ROLE_" + roleName;
         return new User(user.getEmail(),
                 user.getPassword(),
+                true,
+                true,
+                true,
+                !user.isLocked(),
                 Collections.singletonList(new SimpleGrantedAuthority(authority)));
     }
 }

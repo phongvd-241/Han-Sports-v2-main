@@ -126,8 +126,10 @@ export default function HomePage() {
 
   useEffect(() => {
     const unsub = onSync((event) => {
-      if (event === syncEvent.PRODUCT_UPDATED) fetchProducts();
-      if (event === syncEvent.PRODUCT_UPDATED) fetchNavigation();
+      if (event === syncEvent.PRODUCT_UPDATED) {
+        fetchProducts();
+        fetchNavigation();
+      }
       if (event === syncEvent.SETTING_UPDATED) refreshSettings();
     });
     return unsub;

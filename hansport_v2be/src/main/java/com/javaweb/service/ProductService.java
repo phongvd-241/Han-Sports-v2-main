@@ -1,5 +1,7 @@
 package com.javaweb.service;
 
+import com.javaweb.domain.CartDetail;
+import com.javaweb.domain.OrderDetail;
 import com.javaweb.domain.Product;
 import com.javaweb.domain.ProductImage;
 import com.javaweb.domain.request.ReqProductDTO;
@@ -8,6 +10,8 @@ import com.javaweb.domain.response.product.ResCreateProductDTO;
 import com.javaweb.domain.response.product.ResProductNavigationDTO;
 import com.javaweb.domain.response.product.ResProductDTO;
 import com.javaweb.domain.response.product.ResUpdateProductDTO;
+import com.javaweb.repository.CartDetailRepository;
+import com.javaweb.repository.OrderDetailRepository;
 import com.javaweb.repository.ProductImageRepository;
 import com.javaweb.repository.ProductRepository;
 import com.javaweb.util.error.IdInvalidException;
@@ -36,13 +40,19 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
+    private final CartDetailRepository cartDetailRepository;
+    private final OrderDetailRepository orderDetailRepository;
     private final FileService fileService;
 
     public ProductService(ProductRepository productRepository,
                           ProductImageRepository productImageRepository,
+                          CartDetailRepository cartDetailRepository,
+                          OrderDetailRepository orderDetailRepository,
                           FileService fileService) {
         this.productRepository = productRepository;
         this.productImageRepository = productImageRepository;
+        this.cartDetailRepository = cartDetailRepository;
+        this.orderDetailRepository = orderDetailRepository;
         this.fileService = fileService;
     }
 
@@ -97,6 +107,19 @@ public class ProductService {
     public void deleteProductById(long id) {
         Product currentProduct = this.productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+
+        // Xóa các CartDetail tham chiếu đến sản phẩm này để tránh FK constraint
+        List<CartDetail> cartDetails = this.cartDetailRepository.findByProduct(currentProduct);
+        this.cartDetailRepository.deleteAll(cartDetails);
+
+        // Null hóa product trong OrderDetail để bảo toàn lịch sử đơn hàng
+        List<OrderDetail> orderDetails = this.orderDetailRepository.findByProduct(currentProduct);
+        for (OrderDetail od : orderDetails) {
+            od.setProduct(null);
+        }
+        this.orderDetailRepository.saveAll(orderDetails);
+
+        // Xóa ảnh sản phẩm
         List<ProductImage> productImages = this.productImageRepository.findByProductId(id);
         for (ProductImage productImage : productImages) {
             this.deleteProductImageFileIfUnused(productImage.getImageUrl());

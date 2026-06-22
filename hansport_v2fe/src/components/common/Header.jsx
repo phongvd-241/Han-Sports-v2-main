@@ -161,15 +161,15 @@ export default function Header() {
         />
       )}
       <header
-        className={`w-full glass-header sticky top-0 z-50 transition-all duration-300 ${
-          scrolled ? "shadow-[0_8px_32px_0_rgba(31,38,135,0.05)] border-b border-white/15 bg-white/40" : "bg-white/10"
+        className={`w-full glass-header sticky top-0 z-50 transition-all duration-300 border-b ${
+          scrolled ? "shadow-[0_8px_32px_0_rgba(31,38,135,0.05)] border-white/15 bg-white/45" : "border-white/10 bg-white/15"
         }`}
         style={{
           backdropFilter: scrolled ? "blur(32px)" : "blur(20px)",
           WebkitBackdropFilter: scrolled ? "blur(32px)" : "blur(20px)"
         }}
       >
-        <div className="hidden md:block bg-white/5 backdrop-blur-sm text-white/80 text-xs border-b border-white/10">
+        <div className="hidden md:block text-white/80 text-xs">
           <div className="max-w-[1280px] mx-auto px-6 h-9 flex items-center justify-between">
             <div className="flex items-center gap-1.5 font-medium">
               <span className="material-symbols-outlined text-green-400" style={{ fontSize: 14 }}>call</span>
@@ -190,7 +190,7 @@ export default function Header() {
           </div>
         </div>
 
-        <div className="border-b border-white/10">
+        <div>
           <div className="max-w-[1280px] mx-auto px-4 md:px-6 py-3.5 flex items-center gap-4">
             <Link to="/" className="flex-shrink-0 flex items-center gap-2.5" aria-label="HAN SPORTS - Trang chủ">
               <img
@@ -339,7 +339,7 @@ export default function Header() {
 
       <div
         ref={catalogMenuRef}
-        className="hidden md:block border-b border-white/10 bg-white/5 relative"
+        className="hidden md:block relative"
         onMouseLeave={() => setProductMenuOpen(false)}
       >
         <nav className="max-w-[1280px] mx-auto px-6 h-12 flex items-center gap-1" aria-label="Điều hướng chính">

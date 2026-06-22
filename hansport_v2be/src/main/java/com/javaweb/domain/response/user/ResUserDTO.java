@@ -19,6 +19,7 @@ public class ResUserDTO {
     private String address;
     private String phone;
     private String avatar;
+    private boolean locked;
     private ResRoleDTO role;
     private Instant createdAt;
     private Instant updatedAt;

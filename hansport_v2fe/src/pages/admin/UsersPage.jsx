@@ -18,6 +18,7 @@ const USER_COLUMNS = [
   { key: "email", label: "Email", className: "px-4 py-3 text-left" },
   { key: "phone", label: "Số điện thoại", className: "px-4 py-3 text-left" },
   { key: "createdAt", label: "Ngày đăng ký", className: "px-4 py-3 text-left" },
+  { key: "status", label: "Trạng thái", className: "px-4 py-3 text-center" },
   { key: "role", label: "Vai trò", className: "px-4 py-3 text-center" },
   { key: "actions", label: "Thao tác", className: "px-4 py-3 text-center" },
 ];
@@ -85,6 +86,15 @@ export default function UsersPage() {
     setModal("delete");
   };
 
+  const openToggleLock = (item) => {
+    if (item.id === currentUser?.id && !item.locked) {
+      toast.error("Không thể khóa tài khoản đang đăng nhập.");
+      return;
+    }
+    setSelected(item);
+    setModal(item.locked ? "unlock" : "lock");
+  };
+
   const closeModal = () => {
     setModal(null);
     setSelected(null);
@@ -142,9 +152,30 @@ export default function UsersPage() {
     }
   };
 
+  const handleToggleLock = async () => {
+    if (!selected || (selected.id === currentUser?.id && !selected.locked)) return;
+    setSaving(true);
+    try {
+      const nextLocked = !selected.locked;
+      await userApi.updateLockStatus(selected.id, nextLocked);
+      toast.success(nextLocked ? "Đã khóa người dùng." : "Đã mở khóa người dùng.");
+      closeModal();
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Cập nhật trạng thái người dùng thất bại.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const roleBadge = (role) => {
     if (role?.name === "ADMIN") return <span className="badge-blue">Admin</span>;
     return <span className="badge-green">Khách hàng</span>;
+  };
+
+  const lockBadge = (locked) => {
+    if (locked) return <span className="badge-danger">Đã khóa</span>;
+    return <span className="badge-green">Đang hoạt động</span>;
   };
 
   const avatar = (name) =>
@@ -169,7 +200,7 @@ export default function UsersPage() {
 
   const adminOnPage = users.filter((item) => item.role?.name === "ADMIN").length;
   const userOnPage = users.filter((item) => item.role?.name !== "ADMIN").length;
-  const currentUserVisible = users.some((item) => item.id === currentUser?.id);
+  const lockedOnPage = users.filter((item) => item.locked).length;
 
   const renderUserCard = (item, index) => {
     const isSelf = item.id === currentUser?.id;
@@ -210,14 +241,27 @@ export default function UsersPage() {
 
         {/* Hàng 3: Vai trò + Action buttons */}
         <div className="flex items-center justify-between pt-2 border-t border-surface-border border-dashed mt-1">
-          <div>{roleBadge(item.role)}</div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {roleBadge(item.role)}
+            {lockBadge(item.locked)}
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
             <button
               onClick={() => openEdit(item)}
               className="flex items-center gap-1 py-1.5 px-3 bg-brand-blue-light text-brand-blue rounded-xl text-xs font-bold hover:bg-brand-blue hover:text-white transition-colors"
             >
               <span className="material-symbols-outlined" style={{ fontSize: 14 }}>edit</span>
               Sửa
+            </button>
+            <button
+              disabled={isSelf && !item.locked}
+              onClick={() => openToggleLock(item)}
+              className="flex items-center gap-1 py-1.5 px-3 bg-amber-50 text-amber-700 rounded-xl text-xs font-bold hover:bg-amber-500 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                {item.locked ? "lock_open" : "lock"}
+              </span>
+              {item.locked ? "Mở khóa" : "Khóa"}
             </button>
             <button
               disabled={isSelf}
@@ -250,7 +294,7 @@ export default function UsersPage() {
         <AdminMetricCard icon="group" label="Tổng tài khoản" value={totalElements.toLocaleString("vi-VN")} tone="blue" />
         <AdminMetricCard icon="admin_panel_settings" label="Admin trang này" value={adminOnPage.toLocaleString("vi-VN")} tone="teal" />
         <AdminMetricCard icon="person" label="Khách hàng trang này" value={userOnPage.toLocaleString("vi-VN")} tone="green" />
-        <AdminMetricCard icon="verified_user" label="Tài khoản hiện tại" value={currentUserVisible ? "Đang hiển thị" : "Không ở trang này"} tone={currentUserVisible ? "amber" : "blue"} />
+        <AdminMetricCard icon="lock" label="Đã khóa trang này" value={lockedOnPage.toLocaleString("vi-VN")} tone="amber" />
       </div>
 
       <AdminToolbar>
@@ -298,10 +342,24 @@ export default function UsersPage() {
               <td className="px-4 py-3 text-text-secondary">{item.email}</td>
               <td className="px-4 py-3 text-text-secondary">{item.phone || "-"}</td>
               <td className="px-4 py-3 text-text-muted text-xs">{formatDate(item.createdAt)}</td>
+              <td className="px-4 py-3 text-center">{lockBadge(item.locked)}</td>
               <td className="px-4 py-3 text-center">{roleBadge(item.role)}</td>
               <td className="px-4 py-3">
                 <div className="flex items-center justify-center gap-2">
                   <IconButton icon="edit" label="Sửa người dùng" variant="primary" onClick={() => openEdit(item)} />
+                  <IconButton
+                    icon={item.locked ? "lock_open" : "lock"}
+                    label={
+                      isSelf && !item.locked
+                        ? "Không thể khóa tài khoản hiện tại"
+                        : item.locked
+                          ? "Mở khóa người dùng"
+                          : "Khóa người dùng"
+                    }
+                    variant="default"
+                    disabled={isSelf && !item.locked}
+                    onClick={() => openToggleLock(item)}
+                  />
                   <IconButton
                     icon="delete"
                     label={isSelf ? "Không thể xóa tài khoản hiện tại" : "Xóa người dùng"}
@@ -337,6 +395,23 @@ export default function UsersPage() {
           loading={saving}
           onCancel={closeModal}
           onConfirm={handleDelete}
+        />
+      )}
+
+      {(modal === "lock" || modal === "unlock") && selected && (
+        <ConfirmDialog
+          title={modal === "lock" ? "Khóa người dùng?" : "Mở khóa người dùng?"}
+          description={
+            modal === "lock"
+              ? `Tài khoản ${selected.fullName || selected.email} sẽ không thể đăng nhập, refresh token hoặc dùng API bằng token hiện tại.`
+              : `Tài khoản ${selected.fullName || selected.email} sẽ được phép đăng nhập lại.`
+          }
+          icon={modal === "lock" ? "lock" : "lock_open"}
+          confirmLabel={modal === "lock" ? "Khóa tài khoản" : "Mở khóa"}
+          variant={modal === "lock" ? "danger" : "primary"}
+          loading={saving}
+          onCancel={closeModal}
+          onConfirm={handleToggleLock}
         />
       )}
     </div>

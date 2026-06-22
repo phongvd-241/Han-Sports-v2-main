@@ -19,6 +19,7 @@ public class ResCreateUserDTO {
     private String fullName;
     private String address;
     private String phone;
+    private boolean locked;
     private ResRoleDTO role;
     private Instant createdAt;
 }

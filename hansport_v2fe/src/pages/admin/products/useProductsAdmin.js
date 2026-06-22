@@ -209,7 +209,10 @@ export function useProductsAdmin() {
       showToast("Đã xóa sản phẩm!");
       closeModal();
       fetchProducts();
-    } catch { showToast("Xóa sản phẩm thất bại!", "error"); }
+      notifySync(syncEvent.PRODUCT_UPDATED);
+    } catch (err) {
+      showToast(err.response?.data?.message || "Xóa sản phẩm thất bại!", "error");
+    }
     finally { setSaving(false); }
   };
 

@@ -112,6 +112,7 @@ public class AuthController {
         if (currentUserDB == null) {
             throw new org.springframework.security.core.userdetails.UsernameNotFoundException("Email không hợp lệ");
         }
+        this.userService.ensureUserNotLocked(currentUserDB);
 
         ResRoleDTO role = this.convertToRoleDTO(currentUserDB);
         ResLoginDTO.UserLogin user = new ResLoginDTO.UserLogin(
@@ -159,6 +160,7 @@ public class AuthController {
         if (currentUserDB == null) {
             throw new IdInvalidException("User does not exist");
         }
+        this.userService.ensureUserNotLocked(currentUserDB);
         ResLoginDTO.UserGetAccount userGetAccount = new ResLoginDTO.UserGetAccount();
         userGetAccount.setUser(this.userService.convertToResUserDTO(currentUserDB));
 
@@ -185,6 +187,7 @@ public class AuthController {
         if (currentUser == null) {
             throw new IdInvalidException("Refresh Token không hợp lệ");
         }
+        this.userService.ensureUserNotLocked(currentUser);
 
         ResLoginDTO res = new ResLoginDTO();
         User currentUserDB = this.userService.getUserByUsername(email);

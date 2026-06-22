@@ -34,6 +34,9 @@ public class User {
     private String phone;
     private String avatar;
 
+    @Column(nullable = false)
+    private boolean locked = false;
+
     @ManyToOne
     @JoinColumn(name = "role_id")
     private Role role;

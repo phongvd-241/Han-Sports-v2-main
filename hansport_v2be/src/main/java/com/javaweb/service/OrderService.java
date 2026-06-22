@@ -95,7 +95,7 @@ public class OrderService {
             orderDetail.setSelectedColor(cartDetail.getSelectedColor());
             orderDetail.setSelectedSize(cartDetail.getSelectedSize());
             savedOrderDetails.add(this.orderDetailRepository.save(orderDetail));
-            
+
             allCartDetails.remove(cartDetail);
         }
         order.setOrderDetails(savedOrderDetails);
@@ -110,21 +110,20 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public ResultPaginationDTO fetchAllOrders(Specification<Order> spec, Pageable pageable)
-    {
+    public ResultPaginationDTO fetchAllOrders(Specification<Order> spec, Pageable pageable) {
         Page<Order> orders = this.orderRepository.findAll(spec, pageable);
         ResultPaginationDTO resultPaginationDTO = new ResultPaginationDTO();
         ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
 
-        meta.setPage(pageable.getPageNumber()+1);
+        meta.setPage(pageable.getPageNumber() + 1);
         meta.setPagesize(pageable.getPageSize());
         meta.setPages(orders.getTotalPages());
         meta.setTotal(orders.getTotalElements());
 
         resultPaginationDTO.setMeta(meta);
 
-        List<ResOrderDTO> listOrder = orders.getContent().
-                stream().map(item -> this.convertToResOrderDTO(item))
+        List<ResOrderDTO> listOrder = orders.getContent()
+                .stream().map(item -> this.convertToResOrderDTO(item))
                 .collect(Collectors.toList());
 
         resultPaginationDTO.setResult(listOrder);
@@ -154,27 +153,27 @@ public class OrderService {
     }
 
     @Transactional
-        public void deleteOrder(String email, long id) throws IdInvalidException {
-            User currentUser = this.userRepository.findByEmail(email)
-                    .orElseThrow(() -> new IdInvalidException("Người dùng không tồn tại"));
+    public void deleteOrder(String email, long id) throws IdInvalidException {
+        User currentUser = this.userRepository.findByEmail(email)
+                .orElseThrow(() -> new IdInvalidException("Người dùng không tồn tại"));
 
-            Order order;
-            boolean isAdmin = currentUser.getRole() != null && "ADMIN".equalsIgnoreCase(currentUser.getRole().getName());
-            if (isAdmin) {
-                order = this.orderRepository.findById(id)
-                        .orElseThrow(() -> new IdInvalidException("Đơn hàng không tồn tại"));
-            } else {
-                order = this.orderRepository.findByUserAndId(currentUser, id)
-                        .orElseThrow(() -> new IdInvalidException("Đơn hàng không tồn tại"));
-            }
-            this.orderRepository.delete(order);
+        Order order;
+        boolean isAdmin = currentUser.getRole() != null && "ADMIN".equalsIgnoreCase(currentUser.getRole().getName());
+        if (isAdmin) {
+            order = this.orderRepository.findById(id)
+                    .orElseThrow(() -> new IdInvalidException("Đơn hàng không tồn tại"));
+        } else {
+            order = this.orderRepository.findByUserAndId(currentUser, id)
+                    .orElseThrow(() -> new IdInvalidException("Đơn hàng không tồn tại"));
         }
+        this.orderRepository.delete(order);
+    }
 
     private ResultPaginationDTO convertToPaginationDTO(Page<Order> orders, Pageable pageable) {
         ResultPaginationDTO resultPaginationDTO = new ResultPaginationDTO();
         ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
 
-        meta.setPage(pageable.getPageNumber()+1);
+        meta.setPage(pageable.getPageNumber() + 1);
         meta.setPagesize(pageable.getPageSize());
         meta.setPages(orders.getTotalPages());
         meta.setTotal(orders.getTotalElements());
@@ -190,8 +189,8 @@ public class OrderService {
     @Transactional(readOnly = true)
     public void sendOrderEmail(long id) throws IdInvalidException {
         Optional<Order> order = this.orderRepository.findById(id);
-        if(order.isPresent()){
-            Order currentOrder =  order.get();
+        if (order.isPresent()) {
+            Order currentOrder = order.get();
             OrderEmailDTO orderEmailDTO = new OrderEmailDTO();
             orderEmailDTO.setCustomerName(currentOrder.getReceiverName());
             orderEmailDTO.setAddress(currentOrder.getReceiverAddress());
@@ -200,10 +199,14 @@ public class OrderService {
 
             List<OrderEmailDTO.OrderItemEmailDTO> orderItemEmailDTOList = new ArrayList<>();
             List<OrderDetail> orderDetails = currentOrder.getOrderDetails();
-            if(orderDetails != null && orderDetails.size() > 0 ){
+            if (orderDetails != null && orderDetails.size() > 0) {
                 for (OrderDetail orderDetail : orderDetails) {
                     OrderEmailDTO.OrderItemEmailDTO orderItemEmailDTO = new OrderEmailDTO.OrderItemEmailDTO();
-                    orderItemEmailDTO.setProductName(orderDetail.getProduct().getName());
+                    // Bảo vệ null nếu sản phẩm đã bị xóa
+                    String productName = orderDetail.getProduct() != null
+                            ? orderDetail.getProduct().getName()
+                            : "[Sản phẩm đã bị xóa]";
+                    orderItemEmailDTO.setProductName(productName);
                     orderItemEmailDTO.setQuantity(orderDetail.getQuantity());
                     orderItemEmailDTO.setPrice(orderDetail.getPrice());
                     orderItemEmailDTOList.add(orderItemEmailDTO);
@@ -248,7 +251,6 @@ public class OrderService {
         }
 
         resOrderDTO.setOrderDetails(resOrderDetailDTOs);
-
         resOrderDTO.setCreatedAt(order.getCreatedAt());
         resOrderDTO.setUpdatedAt(order.getUpdatedAt());
         return resOrderDTO;
@@ -263,22 +265,26 @@ public class OrderService {
         resOrderDetailDTO.setSelectedSize(orderDetail.getSelectedSize());
 
         ResOrderDetailDTO.ProductOrderDetail productCartDetail = new ResOrderDetailDTO.ProductOrderDetail();
-        productCartDetail.setId(orderDetail.getProduct().getId());
-        productCartDetail.setName(orderDetail.getProduct().getName());
-        
-        List<com.javaweb.domain.ProductImage> images = orderDetail.getProduct().getImages();
-        if (images != null && !images.isEmpty()) {
-            productCartDetail.setImage(images.get(0).getImageUrl());
+        Product product = orderDetail.getProduct();
+        if (product != null) {
+            productCartDetail.setId(product.getId());
+            productCartDetail.setName(product.getName());
+            List<com.javaweb.domain.ProductImage> images = product.getImages();
+            if (images != null && !images.isEmpty()) {
+                productCartDetail.setImage(images.get(0).getImageUrl());
+            } else {
+                productCartDetail.setImage(null);
+            }
         } else {
+            // Sản phẩm đã bị xóa – giữ nguyên giá/số lượng trong lịch sử đơn hàng
+            productCartDetail.setId(0L);
+            productCartDetail.setName("[Sản phẩm đã bị xóa]");
             productCartDetail.setImage(null);
         }
 
         resOrderDetailDTO.setProduct(productCartDetail);
-
         resOrderDetailDTO.setCreatedAt(orderDetail.getCreatedAt());
         resOrderDetailDTO.setUpdatedAt(orderDetail.getUpdatedAt());
         return resOrderDetailDTO;
     }
-
-
 }

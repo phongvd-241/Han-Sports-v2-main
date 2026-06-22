@@ -1,6 +1,7 @@
 package com.javaweb.controller;
 
 import com.javaweb.domain.User;
+import com.javaweb.domain.request.ReqUserLockDTO;
 import com.javaweb.domain.request.ReqUserCreateDTO;
 import com.javaweb.domain.request.ReqUserUpdateDTO;
 import com.javaweb.domain.response.ResultPaginationDTO;
@@ -49,6 +50,15 @@ public class UserController {
         String email = SecurityUtil.getCurrentUserLogin().orElse("");
         this.userService.deleteUserById(id, email);
         return ResponseEntity.ok(null);
+    }
+
+    @PatchMapping("/users/{id}/locked")
+    @ApiMessage("update user lock status")
+    public ResponseEntity<ResUserDTO> updateUserLockStatus(@PathVariable long id,
+                                                           @RequestBody @Valid ReqUserLockDTO req) throws IdInvalidException {
+        String email = SecurityUtil.getCurrentUserLogin().orElse("");
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(this.userService.updateUserLockStatus(id, req.getLocked(), email));
     }
 
     @GetMapping("/users")

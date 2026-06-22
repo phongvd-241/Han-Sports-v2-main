@@ -18,6 +18,7 @@ public class ResUpdateUserDTO {
     private String fullName;
     private String address;
     private String phone;
+    private boolean locked;
     private ResRoleDTO role;
     private Instant updatedAt;
 }

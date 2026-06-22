@@ -27,10 +27,22 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (cartItems.length === 0) {
+    if (cartItems.length === 0 && !success) {
       navigate("/cart");
     }
-  }, [user, cartItems.length, navigate]);
+  }, [user, cartItems.length, navigate, success]);
+
+  // Synchronize user details (phone, address, name) into form once they load/change
+  useEffect(() => {
+    if (user) {
+      setForm((prev) => ({
+        ...prev,
+        receiverName: prev.receiverName || user.fullName || user.name || "",
+        receiverPhone: prev.receiverPhone || user.phone || "",
+        receiverAddress: prev.receiverAddress || user.address || "",
+      }));
+    }
+  }, [user]);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
