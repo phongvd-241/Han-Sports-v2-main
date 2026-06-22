@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation, Navigate } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
+import { useCartStore } from "../store/useCartStore";
 import { authApi } from "../api/authApi";
 import AdminSidebar from "../components/admin/shell/AdminSidebar";
 import { NAV_ITEMS } from "../components/admin/shell/navItems";
@@ -25,6 +26,7 @@ export default function AdminLayout() {
     } catch (err) {
       console.error(err);
     }
+    useCartStore.getState().clearCart();
     clearAuth();
   };
 

@@ -9,7 +9,7 @@ import DataTable from "../../components/admin/DataTable";
 import FormModal from "../../components/admin/FormModal";
 import IconButton from "../../components/admin/IconButton";
 import { useAuthStore } from "../../store/useAuthStore";
-import { formatDate } from "../../utils/constants";
+import { formatDate, API_BASE_URL } from "../../utils/constants";
 
 const EMPTY_FORM = { fullName: "", email: "", password: "", phone: "", address: "", roleName: "USER" };
 const USER_COLUMNS = [
@@ -149,6 +149,24 @@ export default function UsersPage() {
 
   const avatar = (name) =>
     (name || "U").split(" ").map((word) => word[0]).join("").substring(0, 2).toUpperCase();
+
+  const renderUserAvatar = (item, sizeClass = "w-9 h-9 rounded-lg", textClass = "text-xs") => {
+    if (item.avatar) {
+      return (
+        <img
+          src={`${API_BASE_URL}/api/v1/files?fileName=${encodeURIComponent(item.avatar)}&folder=avatar`}
+          alt="Avatar"
+          className={`${sizeClass} object-cover flex-shrink-0`}
+        />
+      );
+    }
+    return (
+      <div className={`${sizeClass} bg-brand-blue text-white flex items-center justify-center ${textClass} font-bold flex-shrink-0`}>
+        {avatar(item.fullName)}
+      </div>
+    );
+  };
+
   const adminOnPage = users.filter((item) => item.role?.name === "ADMIN").length;
   const userOnPage = users.filter((item) => item.role?.name !== "ADMIN").length;
   const currentUserVisible = users.some((item) => item.id === currentUser?.id);
@@ -157,11 +175,8 @@ export default function UsersPage() {
     const isSelf = item.id === currentUser?.id;
     return (
       <div className="flex flex-col gap-3">
-        {/* Hàng 1: Avatar + Tên + Badge Current User */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-brand-blue text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
-            {avatar(item.fullName)}
-          </div>
+          {renderUserAvatar(item, "w-10 h-10 rounded-xl", "text-sm")}
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between">
               <span className="font-bold text-text-primary text-sm truncate">
@@ -273,9 +288,7 @@ export default function UsersPage() {
               <td className="px-4 py-3 text-text-muted text-xs">{page * 10 + index + 1}</td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-brand-blue text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
-                    {avatar(item.fullName)}
-                  </div>
+                  {renderUserAvatar(item, "w-9 h-9 rounded-lg", "text-xs")}
                   <div className="min-w-0">
                     <p className="font-semibold text-text-primary truncate">{item.fullName || "-"}</p>
                     {isSelf && <p className="text-[11px] text-brand-blue font-semibold">Tài khoản hiện tại</p>}

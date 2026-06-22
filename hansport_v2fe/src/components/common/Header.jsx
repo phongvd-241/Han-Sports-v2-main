@@ -5,7 +5,7 @@ import { productApi } from "../../api/productApi";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useCartStore } from "../../store/useCartStore";
 import { useSettingStore } from "../../store/useSettingStore";
-import { LOGO_CIRCLE, LOGO_TEXT } from "../../utils/constants";
+import { LOGO_CIRCLE, LOGO_TEXT, API_BASE_URL } from "../../utils/constants";
 
 const DEFAULT_BRANDS = ["Yonex", "Victor", "Li-Ning", "VNB"];
 
@@ -24,7 +24,7 @@ export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, clearAuth, isAdmin } = useAuthStore();
-  const { totalCount } = useCartStore();
+  const { totalCount, clearCart } = useCartStore();
   const { getSetting } = useSettingStore();
 
   const configuredNav = getSetting("HEADER_NAV", []);
@@ -143,6 +143,7 @@ export default function Header() {
     } catch (error) {
       console.error(error);
     }
+    clearCart();
     clearAuth();
     navigate("/login");
   };
@@ -272,9 +273,17 @@ export default function Header() {
                   aria-haspopup="menu"
                   className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-white/10 transition-all"
                 >
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold bg-gradient-to-r from-brand-green to-brand-blue ring-2 ring-white/20">
-                    {user.fullName?.charAt(0)?.toUpperCase() || "U"}
-                  </div>
+                  {user.avatar ? (
+                    <img
+                      src={`${API_BASE_URL}/api/v1/files?fileName=${encodeURIComponent(user.avatar)}&folder=avatar`}
+                      alt="Avatar"
+                      className="w-8 h-8 rounded-full object-cover ring-2 ring-white/20"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold bg-gradient-to-r from-brand-green to-brand-blue ring-2 ring-white/20">
+                      {user.fullName?.charAt(0)?.toUpperCase() || "U"}
+                    </div>
+                  )}
                   <span className="hidden md:block text-sm font-semibold text-white/90">
                     {user.fullName?.split(" ").pop()}
                   </span>

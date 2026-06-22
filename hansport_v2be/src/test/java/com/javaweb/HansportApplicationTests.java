@@ -31,6 +31,7 @@ import com.javaweb.service.FileService;
 import com.javaweb.service.OrderService;
 import com.javaweb.service.ProductService;
 import com.javaweb.service.ProductImportService;
+import com.javaweb.service.UserService;
 import com.javaweb.util.SecurityUtil;
 import com.javaweb.util.error.IdInvalidException;
 import jakarta.servlet.http.Cookie;
@@ -159,6 +160,9 @@ class HansportApplicationTests {
 	@Autowired
 	private SecurityUtil securityUtil;
 
+	@Autowired
+	private UserService userService;
+
 	@MockBean
 	private EmailService emailService;
 
@@ -167,6 +171,24 @@ class HansportApplicationTests {
 		Assertions.assertTrue(roleRepository.existsByName("ADMIN"));
 		Assertions.assertTrue(roleRepository.existsByName("USER"));
 		Assertions.assertTrue(userRepository.existsByEmail("admin@hansport.local"));
+	}
+
+	@Test
+	@Transactional
+	void googleUserCreatesUserWithRandomPassword() {
+		String testEmail = "new-google-user@example.test";
+		String testName = "Google User Test";
+
+		Assertions.assertFalse(userRepository.existsByEmail(testEmail));
+
+		userService.googleUser(testEmail, testName);
+
+		Assertions.assertTrue(userRepository.existsByEmail(testEmail));
+		User created = userRepository.findByEmail(testEmail).orElseThrow();
+		Assertions.assertEquals(testName, created.getFullName());
+		Assertions.assertNotNull(created.getPassword());
+		Assertions.assertFalse(created.getPassword().isEmpty());
+		Assertions.assertTrue(passwordEncoder.matches("some-password-which-will-fail-to-match", created.getPassword()) || created.getPassword().startsWith("$2a$")); // BCrypt prefix
 	}
 
 	@Test

@@ -75,6 +75,7 @@ public class UserService {
         User user = new User();
         user.setEmail(email);
         user.setFullName(name);
+        user.setPassword(this.passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
         user.setRole(this.roleRepository.findByName("USER").isPresent()?this.roleRepository.findByName("USER").get():null);
         this.userRepository.save(user);
 

@@ -11,6 +11,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -35,6 +38,15 @@ public class FileController {
             throws IOException, StorageException {
         if (files == null || files.isEmpty()) {
             throw new StorageException("file is empty. Please upload the file");
+        }
+
+        if (!"avatar".equals(folder)) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            boolean isAdmin = auth != null && auth.getAuthorities().stream()
+                    .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+            if (!isAdmin) {
+                throw new AccessDeniedException("Only ADMIN can upload to this folder");
+            }
         }
 
         List<String> fileNames = new ArrayList<>();

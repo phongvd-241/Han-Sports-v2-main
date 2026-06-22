@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { LOGO_CIRCLE } from "../../../utils/constants";
+import { LOGO_CIRCLE, API_BASE_URL } from "../../../utils/constants";
 import { NAV_ITEMS } from "./navItems";
 
 export function SidebarContent({ user, onLogout, currentPath }) {
@@ -15,7 +15,7 @@ export function SidebarContent({ user, onLogout, currentPath }) {
         </Link>
       </div>
 
-      <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-1">
         {NAV_ITEMS.map(({ label, icon, path }) => {
           const isActive = path === "/admin" ? currentPath === "/admin" : currentPath.startsWith(path);
           return (
@@ -35,9 +35,17 @@ export function SidebarContent({ user, onLogout, currentPath }) {
 
       <div className="px-4 py-4 border-t border-white/10">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-            {user?.fullName?.charAt(0)?.toUpperCase() || user?.name?.charAt(0)?.toUpperCase() || "A"}
-          </div>
+          {user?.avatar ? (
+            <img
+              src={`${API_BASE_URL}/api/v1/files?fileName=${encodeURIComponent(user.avatar)}&folder=avatar`}
+              alt="Avatar"
+              className="w-9 h-9 rounded-lg object-cover flex-shrink-0"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+              {user?.fullName?.charAt(0)?.toUpperCase() || user?.name?.charAt(0)?.toUpperCase() || "A"}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-semibold truncate">{user?.fullName || user?.name}</p>
             <p className="text-white/45 text-xs truncate">{user?.email}</p>
@@ -54,7 +62,7 @@ export function SidebarContent({ user, onLogout, currentPath }) {
 
 export default function AdminSidebar({ user, onLogout, currentPath }) {
   return (
-    <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col bg-admin-bg text-white">
+    <aside className="hidden lg:flex w-64 h-screen sticky top-0 flex-shrink-0 flex-col bg-admin-bg text-white">
       <SidebarContent user={user} onLogout={onLogout} currentPath={currentPath} />
     </aside>
   );
